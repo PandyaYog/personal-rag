@@ -22,3 +22,4 @@ google-auth==2.29.0
 google-api-python-client==2.130.0
 
 # Add other core dependencies as we go
+psycopg2

@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-# This import will be added later when we create the routers
-# from app.api.v1.api import api_router 
+from app.api.v1.api import api_router
 
 app = FastAPI(
     title="RAG from Scratch API",
@@ -20,8 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Placeholder for the API router
-# app.include_router(api_router, prefix="/v1")
+app.include_router(api_router, prefix="/v1") # Include the v1 router
 
 @app.get("/", tags=["Health Check"])
 def read_root():
