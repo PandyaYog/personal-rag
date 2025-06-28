@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from google.oauth2 import id_token
 from google.auth.transport import requests
 import uuid
-
 from app.db.models.user import User
 from app.schemas.user import UserCreate
 from app.utils.security import get_password_hash
@@ -26,7 +25,7 @@ def create_user(db: Session, user: UserCreate) -> User:
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_password,
-        is_verified=False # User is not verified on creation
+        is_verified=False 
     )
     db.add(db_user)
     db.commit()
@@ -39,26 +38,19 @@ def create_or_link_google_user(db: Session, token: str) -> User | None:
     Verifies Google ID token, then creates a new user or links to an existing one.
     """
     try:
-        # Verify the ID token with Google's servers
         idinfo = id_token.verify_oauth2_token(token, requests.Request())
         
         email = idinfo['email']
         full_name = idinfo.get('name')
 
-        # Check if user already exists with this email
         db_user = get_user_by_email(db, email=email)
 
         if db_user:
-            # User exists. Link the account.
-            # If they signed up manually, their account is now also Google-verified.
             if not db_user.is_verified:
                 db_user.is_verified = True
-            # Update name if it's missing
             if not db_user.full_name and full_name:
                 db_user.full_name = full_name
         else:
-            # User does not exist. Create a new one.
-            # Generate a unique username.
             base_username = email.split('@')[0].replace('.', '_').replace('+', '_')
             temp_username = base_username
             i = 1
@@ -70,8 +62,8 @@ def create_or_link_google_user(db: Session, token: str) -> User | None:
                 username=temp_username,
                 email=email,
                 full_name=full_name,
-                is_verified=True, # Verified by Google
-                hashed_password=None # No password for Google-only accounts
+                is_verified=True, 
+                hashed_password=None 
             )
         
         db.add(db_user)
@@ -80,7 +72,6 @@ def create_or_link_google_user(db: Session, token: str) -> User | None:
         return db_user
 
     except ValueError:
-        # Invalid token
         return None
 
 # --- Verification Logic ---

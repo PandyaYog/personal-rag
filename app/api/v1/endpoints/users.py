@@ -71,7 +71,7 @@ def change_email(
         raise HTTPException(status_code=400, detail="This email is already registered.")
 
     current_user.email = email_in.new_email
-    current_user.is_verified = False # MUST re-verify
+    current_user.is_verified = False 
     db.add(current_user)
     db.commit()
 
