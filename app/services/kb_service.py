@@ -2,8 +2,10 @@ import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 import json
+from typing import List
 from app.db.models.knowledgebase import KnowledgeBase, Document
 from app.db.models.user import User
+from app.db.models.assistant import Assistant
 from app.schemas.knowledgebase import KnowledgeBaseCreate, KnowledgeBaseUpdate, KnowledgeBaseConfigUpdate, HybridChunkerParams, EmbeddingModelConfig
 from app.services.minio_service import minio_client
 
@@ -79,3 +81,14 @@ def delete_kb(db: Session, db_kb: KnowledgeBase) -> KnowledgeBase:
     db.delete(db_kb)
     db.commit()
     return db_kb
+
+
+def get_all_docs_for_assistant(db: Session, assistant_id: str) -> List[Document]:
+    assistant = db.query(Assistant).filter(Assistant.id == assistant_id).first()
+    if not assistant:
+        return []
+    
+    all_docs = []
+    for kb in assistant.knowledge_bases:
+        all_docs.extend(kb.documents)
+    return all_docs
