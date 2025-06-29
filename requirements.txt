@@ -21,3 +21,4 @@ fastembed
 unstructured[pdf,docx]==0.14.4
 tiktoken==0.7.0
 nltk==3.8.1
+groq
