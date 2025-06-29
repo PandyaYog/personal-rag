@@ -47,7 +47,7 @@ coverage.xml
 *.cover
 .pytest_cache/
 .hypothesis/
-
+next.txt
 # Environments
 .env
 .venv

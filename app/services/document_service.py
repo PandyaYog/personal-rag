@@ -2,12 +2,17 @@ import uuid
 import os
 from sqlalchemy.orm import Session
 from fastapi import UploadFile
-
 from app.db.models.knowledgebase import Document, KnowledgeBase
 from app.db.models.user import User
 from app.schemas.document import DocumentUpdate
 from app.services.minio_service import minio_client
 
+def trigger_processing_task(doc_id: str):
+    from app.tasks.process_document import process_document_task  # 👈 lazy import
+    process_document_task.apply_async(args=[doc_id],
+                                task_id=doc_id)
+    # process_document_task(doc_id)
+    
 # --- GET ---
 def get_doc_by_id(db: Session, doc_id: uuid.UUID, user_id: uuid.UUID) -> Document | None:
     return db.query(Document).filter(Document.id == doc_id, Document.user_id == user_id).first()
@@ -55,6 +60,9 @@ def upload_document(db: Session, file: UploadFile, kb: KnowledgeBase, user: User
     db.add(db_doc)
     db.commit()
     db.refresh(db_doc)
+
+    trigger_processing_task(str(db_doc.id))
+    print(f"Dispatched processing task for document: {db_doc.id}")
     
     return db_doc
 
@@ -74,4 +82,20 @@ def delete_document(db: Session, db_doc: Document) -> Document:
     minio_client.delete_file(db_doc.file_path_in_minio)
     db.delete(db_doc)
     db.commit()
+    return db_doc
+
+def get_doc_by_id_internal(db: Session, doc_id: uuid.UUID) -> Document | None:
+    """Internal getter for Celery worker, does not check user_id."""
+    return db.query(Document).filter(Document.id == doc_id).first()
+
+def reprocess_document(db: Session, db_doc: Document):
+    """
+    Manually triggers reprocessing for an existing document.
+    """
+    db_doc.processing_status = "PENDING"
+    db_doc.num_chunks = 0
+    db.commit()
+
+    trigger_processing_task(str(db_doc.id))
+    print(f"Dispatched re-processing task for document: {db_doc.id}")
     return db_doc

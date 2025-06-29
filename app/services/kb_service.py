@@ -4,7 +4,7 @@ from sqlalchemy import func, case
 
 from app.db.models.knowledgebase import KnowledgeBase, Document
 from app.db.models.user import User
-from app.schemas.knowledgebase import KnowledgeBaseCreate, KnowledgeBaseUpdate, KnowledgeBaseConfigUpdate, HybridChunkingConfig
+from app.schemas.knowledgebase import KnowledgeBaseCreate, KnowledgeBaseUpdate, KnowledgeBaseConfigUpdate, HybridChunkerParams, EmbeddingModelConfig
 from app.services.minio_service import minio_client
 
 # --- GET ---
@@ -25,12 +25,18 @@ def get_all_kbs_for_user(db: Session, user_id: uuid.UUID, skip: int = 0, limit: 
 
 # --- CREATE ---
 def create_kb(db: Session, kb_in: KnowledgeBaseCreate, user: User) -> KnowledgeBase:
-    default_chunking = HybridChunkingConfig().model_dump()
-    
+    default_hybrid_params = HybridChunkerParams().model_dump()
+    default_chunking = {
+        "strategy": "hybrid",
+        "parameters": default_hybrid_params
+    }
+    default_embedding_config = EmbeddingModelConfig().model_dump()
+
     db_kb = KnowledgeBase(
         **kb_in.model_dump(),
         user_id=user.id,
         chunking_strategy=default_chunking,
+        embedding_model=default_embedding_config,
     )
     db.add(db_kb)
     db.commit()
@@ -50,7 +56,11 @@ def update_kb(db: Session, db_kb: KnowledgeBase, kb_in: KnowledgeBaseUpdate) -> 
 
 def update_kb_config(db: Session, db_kb: KnowledgeBase, config_in: KnowledgeBaseConfigUpdate) -> KnowledgeBase:
     if config_in.embedding_model:
-        db_kb.embedding_model = config_in.embedding_model
+        current_config = db_kb.embedding_model
+        updated_config = config_in.embedding_model.model_dump(exclude_unset=True)
+        current_config.update(updated_config)
+        db_kb.embedding_model = current_config
+            
     if config_in.chunking_strategy:
         db_kb.chunking_strategy = config_in.chunking_strategy.model_dump()
         

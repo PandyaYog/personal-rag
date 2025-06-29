@@ -42,6 +42,19 @@ class MinioClient:
             print(f"Error uploading file to Minio: {exc}")
             return False
 
+    def get_object_file(self, file_path_in_minio: str):
+        """Downloads a file from Minio."""
+        try:
+            response = self.client.get_object(self.bucket_name, file_path_in_minio)
+            return response.read()
+        except S3Error as exc:
+            print(f"Error downloading file from Minio: {exc}")
+            return None
+        finally:
+            if 'response' in locals() and response:
+                response.close()
+                response.release_conn()
+                
     def download_file(self, file_path_in_minio: str):
         """Downloads a file from Minio."""
         try:

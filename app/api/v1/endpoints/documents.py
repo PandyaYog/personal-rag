@@ -113,3 +113,24 @@ def download_document(
         raise HTTPException(status_code=500, detail="Could not retrieve file from storage")
 
     return Response(file_object.read(), media_type='application/octet-stream', headers={"Content-Disposition": f"attachment; filename={db_doc.name}"})
+
+
+@router.post("/{kb_id}/documents/{doc_id}/process", response_model=doc_schema.DocumentStatus)
+def trigger_document_reprocessing(
+    doc_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user)
+):
+    """
+    Manually re-trigger the chunking and embedding process for a document.
+    Useful if the KB's configuration has changed.
+    """
+    db_doc = document_service.get_doc_by_id(db, doc_id=doc_id, user_id=current_user.id)
+    if not db_doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    if db_doc.processing_status == "PROCESSING":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Document is already being processed.")
+
+    reprocessed_doc = document_service.reprocess_document(db, db_doc=db_doc)
+    return doc_schema.DocumentStatus.model_validate(reprocessed_doc)

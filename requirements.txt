@@ -1,26 +1,23 @@
-# FastAPI and Server
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
-
-# Pydantic for settings management
 pydantic==2.7.1
 pydantic-settings==2.2.1
-
-# Database ORM and Driver
 sqlalchemy==2.0.30
 psycopg2-binary==2.9.9
 alembic==1.13.1
-
-# Passlib for password hashing
 passlib[bcrypt]==1.7.4
-
-# PyJWT for token handling
 python-jose[cryptography]==3.3.0
-
-# Google Auth
 google-auth==2.29.0
 google-api-python-client==2.130.0
-
-# Add other core dependencies as we go
 psycopg2
 minio==7.2.7
+celery==5.4.0
+qdrant-client
+sentence-transformers==2.7.0
+tiktoken==0.7.0
+unstructured==0.14.4
+nltk==3.8.1
+fastembed
+unstructured[pdf,docx]==0.14.4
+tiktoken==0.7.0
+nltk==3.8.1

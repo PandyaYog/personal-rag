@@ -20,8 +20,7 @@ class KnowledgeBase(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     chunking_strategy = Column(JSON, nullable=False)
-    embedding_model = Column(String, nullable=False, default="all-MiniLM-L6-v2")
-
+    embedding_model = Column(JSON, nullable=False)
 
 class Document(Base):
     __tablename__ = "documents"
