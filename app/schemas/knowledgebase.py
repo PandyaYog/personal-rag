@@ -12,6 +12,7 @@ class SentenceBasedChunkerParams(BaseModel):
 
 class SemanticChunkerParams(BaseModel):
     embedding_model: str = 'all-MiniLM-L6-v2'
+    backend: str = 'sentence_transformers'
     breakpoint_percentile: int = 90
     buffer_size: int = 1
 
@@ -24,6 +25,7 @@ class TokenBasedChunkerParams(BaseModel):
     token_size: int = 500
     token_overlap: int = 50
     model_name: str = "cl100k_base"
+    tokenizer_backend: str = "tiktoken"
 
 class RecursiveChunkerParams(BaseModel):
     chunk_size: int = 1000
@@ -32,11 +34,13 @@ class RecursiveChunkerParams(BaseModel):
 
 class HybridChunkerParams(BaseModel):
     embedding_model: str = 'all-MiniLM-L6-v2'
+    backend: str = 'sentence_transformers'
     breakpoint_percentile: int = 90
     buffer_size: int = 1
     token_size: int = 512
     token_overlap: int = 50 
     model_name: str = "cl100k_base"
+    tokenizer_backend: str = "tiktoken"
 
 # --- Main Chunking Strategy Schema using a Union of all parameter types ---
 AnyChunkerParams = Union[
