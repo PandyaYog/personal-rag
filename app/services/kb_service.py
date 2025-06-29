@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
-
+import json
 from app.db.models.knowledgebase import KnowledgeBase, Document
 from app.db.models.user import User
 from app.schemas.knowledgebase import KnowledgeBaseCreate, KnowledgeBaseUpdate, KnowledgeBaseConfigUpdate, HybridChunkerParams, EmbeddingModelConfig
@@ -56,10 +56,12 @@ def update_kb(db: Session, db_kb: KnowledgeBase, kb_in: KnowledgeBaseUpdate) -> 
 
 def update_kb_config(db: Session, db_kb: KnowledgeBase, config_in: KnowledgeBaseConfigUpdate) -> KnowledgeBase:
     if config_in.embedding_model:
-        current_config = db_kb.embedding_model
+        current_config = db_kb.embedding_model or {}
+        if isinstance(current_config, str):
+            current_config = json.loads(current_config)
         updated_config = config_in.embedding_model.model_dump(exclude_unset=True)
-        current_config.update(updated_config)
-        db_kb.embedding_model = current_config
+        merged_config = {**current_config, **updated_config}
+        db_kb.embedding_model = merged_config
             
     if config_in.chunking_strategy:
         db_kb.chunking_strategy = config_in.chunking_strategy.model_dump()

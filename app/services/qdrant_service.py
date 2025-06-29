@@ -1,5 +1,6 @@
 from qdrant_client import QdrantClient, models
 from app.core.config import settings
+import httpx
 # from app.rag.embedding.models import DENSE_DIM, MULTI_VECTOR_DIM
 
 DENSE_DIM = 384
@@ -8,7 +9,7 @@ QDRANT_COLLECTION_NAME = "rag_from_scratch_collection"
 
 class QdrantService:
     def __init__(self):
-        self.client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
+        self.client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=180.0)
         self._ensure_collection_exists()
 
     def _ensure_collection_exists(self):
