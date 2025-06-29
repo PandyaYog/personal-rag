@@ -8,6 +8,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import fastembed
 from fastembed import TextEmbedding
+from transformers import AutoTokenizer
 from app.rag.chunking.base import BaseChunker
 
 
@@ -336,32 +337,175 @@ class SlidingWindowChunker(BaseChunker):
                 chunks.append(chunk.strip())
         return chunks
 
-class TokenBasedChunker(BaseChunker):
-    """Splits text based on token count using tiktoken."""
+class TokenBasedChunker:
+    """Splits text based on token count using various tokenizer models."""
     
-    def __init__(self, 
-                 token_size: int = 500, 
-                 token_overlap: int = 50, 
-                 model_name: str = "cl100k_base", 
+    # Supported model mappings
+    TIKTOKEN_MODELS = {
+        "cl100k_base": "cl100k_base",  # GPT-4, GPT-3.5, text-embedding-ada-002
+        "p50k_base": "p50k_base",      # GPT-3 models
+        "p50k_edit": "p50k_edit",      # Codex models
+        "gpt2": "gpt2",                # GPT-2
+        "r50k_base": "r50k_base",      # GPT-1
+    }
+    
+    HUGGINGFACE_MODELS = {
+        "gpt2": "gpt2",
+        "gpt-neo-2.7b": "EleutherAI/gpt-neo-2.7B",
+        "gpt-j-6b": "EleutherAI/gpt-j-6B",
+        "opt-1.3b": "facebook/opt-1.3b",
+        "flan-t5-base": "google/flan-t5-base",
+        "bert-base": "bert-base-uncased",
+        "roberta-base": "roberta-base",
+        "distilbert-base": "distilbert-base-uncased",
+        "codebert-base": "microsoft/codebert-base",
+        "codet5-base": "Salesforce/codet5-base",
+        "sentence-transformer": "sentence-transformers/all-MiniLM-L6-v2",
+        "dialogpt-medium": "microsoft/DialoGPT-medium",
+    }
+    
+    def __init__(self,
+                 token_size: int = 500,
+                 token_overlap: int = 50,
+                 model_name: str = "cl100k_base",
+                 tokenizer_backend: str = "auto",  # "tiktoken", "huggingface", "auto"
                  **kwargs):
+        """
+        Initialize the TokenBasedChunker.
+        
+        Args:
+            token_size: Maximum tokens per chunk
+            token_overlap: Number of overlapping tokens between chunks
+            model_name: Name of the tokenizer model to use
+            tokenizer_backend: Backend to use ("tiktoken", "huggingface", "auto")
+        """
         self.token_size = token_size
         self.token_overlap = token_overlap
-        self.tokenizer = tiktoken.get_encoding(model_name)
+        self.model_name = model_name
+        self.tokenizer_backend = tokenizer_backend
+        self.tokenizer = None
+        self._setup_tokenizer()
+    
+    def _setup_tokenizer(self):
+        """Setup the appropriate tokenizer based on model and backend."""
+        if self.tokenizer_backend == "auto":
+            # Try tiktoken first, then huggingface
+            if self.model_name in self.TIKTOKEN_MODELS:
+                self.tokenizer_backend = "tiktoken"
+            elif self.model_name in self.HUGGINGFACE_MODELS:
+                self.tokenizer_backend = "huggingface"
+            else:
+                # Default to tiktoken if model name is not in our mappings
+                self.tokenizer_backend = "tiktoken"
+        
+        try:
+            if self.tokenizer_backend == "tiktoken":
+                self._setup_tiktoken()
+            elif self.tokenizer_backend == "huggingface":
+                self._setup_huggingface()
+            else:
+                raise ValueError(f"Unsupported tokenizer backend: {self.tokenizer_backend}")
+        except Exception as e:
+            # Fallback to tiktoken with cl100k_base
+            self.tokenizer_backend = "tiktoken"
+            self.model_name = "cl100k_base"
+            self._setup_tiktoken()
+    
+    def _setup_tiktoken(self):
+        """Setup tiktoken tokenizer."""
+        try:
+            encoding_name = self.TIKTOKEN_MODELS.get(self.model_name, self.model_name)
+            self.tokenizer = tiktoken.get_encoding(encoding_name)
+        except Exception as e:
+            # Fallback to cl100k_base
+            self.tokenizer = tiktoken.get_encoding("cl100k_base")
+    
+    def _setup_huggingface(self):
+        """Setup Hugging Face tokenizer."""
+        try:
+            model_path = self.HUGGINGFACE_MODELS.get(self.model_name, self.model_name)
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+            # Handle tokenizers without pad_token
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+        except Exception as e:
+            raise RuntimeError(f"Failed to load Hugging Face model {self.model_name}: {e}")
+    
+    def _encode_text(self, text: str) -> List[int]:
+        """Encode text to tokens based on tokenizer backend."""
+        if self.tokenizer_backend == "tiktoken":
+            return self.tokenizer.encode(text)
+        elif self.tokenizer_backend == "huggingface":
+            return self.tokenizer.encode(text, add_special_tokens=False)
+        else:
+            raise ValueError(f"Unsupported tokenizer backend: {self.tokenizer_backend}")
+    
+    def _decode_tokens(self, tokens: List[int]) -> str:
+        """Decode tokens to text based on tokenizer backend."""
+        if self.tokenizer_backend == "tiktoken":
+            return self.tokenizer.decode(tokens)
+        elif self.tokenizer_backend == "huggingface":
+            return self.tokenizer.decode(tokens, skip_special_tokens=True)
+        else:
+            raise ValueError(f"Unsupported tokenizer backend: {self.tokenizer_backend}")
     
     def chunk(self, text: str) -> List[str]:
+        """
+        Split text into chunks based on token count.
+        
+        Args:
+            text: Input text to chunk
+            
+        Returns:
+            List of text chunks
+        """
         if not text:
             return []
         
-        tokens = self.tokenizer.encode(text)
+        try:
+            tokens = self._encode_text(text)
+            chunks = []
+            
+            for i in range(0, len(tokens), self.token_size - self.token_overlap):
+                chunk_tokens = tokens[i:i + self.token_size]
+                chunk_text = self._decode_tokens(chunk_tokens).strip()
+                if chunk_text:
+                    chunks.append(chunk_text)
+            
+            return chunks
+        
+        except Exception as e:
+            # Fallback to simple character-based chunking
+            return self._fallback_chunk(text)
+    
+    def _fallback_chunk(self, text: str) -> List[str]:
+        """Fallback chunking method using character approximation."""
+        # Rough approximation: 1 token ≈ 4 characters
+        char_size = self.token_size * 4
+        char_overlap = self.token_overlap * 4
+        
         chunks = []
-        
-        for i in range(0, len(tokens), self.token_size - self.token_overlap):
-            chunk_tokens = tokens[i:i + self.token_size]
-            chunk_text = self.tokenizer.decode(chunk_tokens).strip()
-            if chunk_text:
-                chunks.append(chunk_text)
-        
+        for i in range(0, len(text), char_size - char_overlap):
+            chunk = text[i:i + char_size].strip()
+            if chunk:
+                chunks.append(chunk)
         return chunks
+    
+    def get_token_count(self, text: str) -> int:
+        """Get the token count for a given text."""
+        try:
+            return len(self._encode_text(text))
+        except Exception:
+            # Fallback approximation
+            return len(text) // 4
+    
+    @classmethod
+    def list_available_models(cls) -> dict:
+        """List all available models by backend."""
+        return {
+            "tiktoken": list(cls.TIKTOKEN_MODELS.keys()),
+            "huggingface": list(cls.HUGGINGFACE_MODELS.keys())
+        }
 
 class RecursiveCharacterChunker(BaseChunker):
     """Recursively splits text using different separators."""
