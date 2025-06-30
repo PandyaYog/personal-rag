@@ -1,16 +1,25 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, Field
-from typing import List, Optional, Literal
+from pydantic import BaseModel, Field, computed_field
+from typing import List, Optional, Literal, Dict, Any
 
 class Message(BaseModel):
     id: uuid.UUID
     role: Literal['user', 'assistant']
-    text: str
+    content: Dict[str, Any]
     is_good: Optional[bool]
-    reference_docs: Optional[List[str]]
     created_at: datetime
 
+    @computed_field
+    @property
+    def text(self) -> str:
+        """Returns the text of the latest version. This now works for all roles."""
+        return self.content["versions"][-1]["text"]
+
+    @computed_field
+    @property
+    def reference_docs(self) -> Optional[List[str]]:
+        return self.content["versions"][-1].get("reference_docs")
     class Config:
         from_attributes = True
 
@@ -38,3 +47,6 @@ class ChatWithHistory(Chat):
 
 class UserQuery(BaseModel):
     query: str = Field(..., min_length=1)
+
+class Feedback(BaseModel):
+    is_good: bool

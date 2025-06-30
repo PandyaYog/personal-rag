@@ -1,6 +1,7 @@
 import uuid
 from typing import List
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from app.db.models.user import User
 from app.db.models.assistant import Assistant
 from app.db.models.knowledgebase import KnowledgeBase
@@ -37,7 +38,7 @@ def get_assistant_by_id(db: Session, assistant_id: uuid.UUID, user_id: uuid.UUID
     return db.query(Assistant).filter(Assistant.id == assistant_id, Assistant.user_id == user_id).first()
 
 def get_all_assistants_for_user(db: Session, user_id: uuid.UUID) -> List[Assistant]:
-    return db.query(Assistant).filter(Assistant.user_id == user_id).all()
+    return db.query(Assistant).filter(Assistant.user_id == user_id).order_by(desc(Assistant.updated_at)).all()
 
 def update_assistant(db: Session, db_assistant: Assistant, assistant_in: AssistantUpdate, user_id: uuid.UUID) -> Assistant:
     """Updates an assistant's details."""

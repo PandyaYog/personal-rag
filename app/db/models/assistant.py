@@ -5,6 +5,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import JSONB
 from app.db.session import Base
 
 assistant_knowledgebase_association = Table(
@@ -47,9 +48,10 @@ class Message(Base):
     __tablename__ = "messages"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     chat_id = Column(UUID(as_uuid=True), ForeignKey("chats.id"), nullable=False)
+    parent_id = Column(UUID(as_uuid=True), ForeignKey("messages.id"), nullable=True)
     role = Column(String, nullable=False)
-    text = Column(Text, nullable=False)
-    reference_docs = Column(JSON, nullable=True)
+    content = Column(JSONB, nullable=False)
     is_good = Column(Boolean, nullable=True) 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     chat = relationship("Chat", back_populates="messages")
+    parent = relationship("Message", remote_side=[id], backref="children")

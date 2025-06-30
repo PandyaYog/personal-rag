@@ -80,10 +80,6 @@ class EmbeddingModelConfig(BaseModel):
         description="Model for multi-vector embeddings (FastEmbed ColBERT)"
     )
 
-    dense_dim: Optional[int] = Field(None, description="Dense embedding dimension")
-    sparse_dim: Optional[int] = Field(None, description="Sparse embedding dimension") 
-    multi_vector_dim: Optional[int] = Field(None, description="Multi-vector embedding dimension")
-
 class KnowledgeBaseConfigUpdate(BaseModel):
     embedding_model: EmbeddingModelConfig | None = None
     chunking_strategy: ChunkingStrategy | None = None

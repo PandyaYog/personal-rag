@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
+from sqlalchemy import func, case, desc
 import json
 from typing import List
 from app.db.models.knowledgebase import KnowledgeBase, Document
@@ -21,6 +21,7 @@ def get_all_kbs_for_user(db: Session, user_id: uuid.UUID, skip: int = 0, limit: 
     ).outerjoin(Document, KnowledgeBase.id == Document.kb_id)\
      .filter(KnowledgeBase.user_id == user_id)\
      .group_by(KnowledgeBase.id)\
+     .order_by(desc(KnowledgeBase.updated_at))\
      .offset(skip)\
      .limit(limit)\
      .all()
