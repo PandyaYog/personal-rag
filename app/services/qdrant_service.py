@@ -1,6 +1,6 @@
 from qdrant_client import QdrantClient, models
 from app.core.config import settings
-import httpx
+from typing import List
 # from app.rag.embedding.models import DENSE_DIM, MULTI_VECTOR_DIM
 
 DENSE_DIM = 384
@@ -67,6 +67,23 @@ class QdrantService:
             wait=True
         )
 
+    def get_chunks_for_document(self, doc_id: str) -> List[models.ScoredPoint]:
+        """
+        Retrieves all chunk points for a specific document ID using scrolling.
+        """
+        points, _ = self.client.scroll(
+            collection_name=QDRANT_COLLECTION_NAME,
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(key="doc_id", match=models.MatchValue(value=doc_id))
+                ]
+            ),
+            limit=1000,
+            with_payload=True,
+            with_vectors=False 
+        )
+        return points
+    
     def delete_points_by_doc_id(self, doc_id: str):
         """Deletes all points associated with a specific document ID."""
         self.client.delete(
@@ -84,4 +101,11 @@ class QdrantService:
         )
         print(f"Deleted all points for doc_id: {doc_id} from Qdrant.")
 
+    def upsert_single_point(self, point: models.PointStruct):
+        """Upserts a single point, useful for updating or adding a chunk."""
+        self.client.upsert(
+            collection_name=QDRANT_COLLECTION_NAME,
+            points=[point],
+            wait=True
+        )
 qdrant_service = QdrantService()

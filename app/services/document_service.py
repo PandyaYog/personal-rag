@@ -2,13 +2,18 @@ import uuid
 import os
 from sqlalchemy.orm import Session
 from fastapi import UploadFile
+from qdrant_client import models
 from app.db.models.knowledgebase import Document, KnowledgeBase
 from app.db.models.user import User
 from app.schemas.document import DocumentUpdate
+from app.schemas.chunks import ChunkCreate
+from app.schemas.knowledgebase import EmbeddingModelConfig
 from app.services.minio_service import minio_client
+from app.services.qdrant_service import qdrant_service
+from app.rag.embedding.models import get_embedder
 
 def trigger_processing_task(doc_id: str):
-    from app.tasks.process_document import process_document_task  # 👈 lazy import
+    from app.tasks.process_document import process_document_task  
     process_document_task.apply_async(args=[doc_id],
                                 task_id=doc_id)
     # process_document_task(doc_id)
@@ -79,6 +84,7 @@ def update_document(db: Session, db_doc: Document, doc_in: DocumentUpdate) -> Do
 
 # --- DELETE ---
 def delete_document(db: Session, db_doc: Document) -> Document:
+    qdrant_service.delete_points_by_doc_id(str(db_doc.id))
     minio_client.delete_file(db_doc.file_path_in_minio)
     db.delete(db_doc)
     db.commit()
@@ -99,3 +105,38 @@ def reprocess_document(db: Session, db_doc: Document):
     trigger_processing_task(str(db_doc.id))
     print(f"Dispatched re-processing task for document: {db_doc.id}")
     return db_doc
+
+
+def add_manual_chunk(db: Session, doc_id: uuid.UUID, chunk_in: ChunkCreate, user: User) -> models.PointStruct:
+    """Manually adds a new chunk to a document."""
+    doc = get_doc_by_id(db, doc_id=doc_id, user_id=user.id)
+    if not doc:
+        raise ValueError("Document not found.")
+
+    kb: KnowledgeBase = doc.kb
+    if isinstance(kb.embedding_model, dict):
+        embedding_config = EmbeddingModelConfig(**kb.embedding_model)
+    else:
+        embedding_config = kb.embedding_model
+    embedder = get_embedder(config=embedding_config)
+    embeddings = embedder.embed([chunk_in.content])[0]
+
+    new_point_id = str(uuid.uuid4())
+    new_chunk_num = doc.num_chunks + 1
+    
+    payload = {
+        "kb_id": str(kb.id), "doc_id": str(doc.id),
+        "doc_name": doc.name, "user_id": str(user.id),
+        "chunk_num": new_chunk_num, "chunk_content": chunk_in.content,
+    }
+    vector_payload = {k: v for k, v in embeddings.items() if v is not None}
+    
+    new_point = models.PointStruct(id=new_point_id, vector=vector_payload, payload=payload)
+    
+    qdrant_service.upsert_single_point(new_point)
+
+    doc.num_chunks = new_chunk_num
+    db.add(doc)
+    db.commit()
+
+    return new_point

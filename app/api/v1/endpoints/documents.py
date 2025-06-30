@@ -7,7 +7,9 @@ from app.db.session import get_db
 from app.api.v1 import deps
 from app.db.models.user import User
 from app.schemas import document as doc_schema
+from app.schemas.chunks import Chunk, ChunkCreate
 from app.services import document_service, kb_service, minio_service
+from app.services.qdrant_service import qdrant_service
 
 router = APIRouter()
 
@@ -134,3 +136,37 @@ def trigger_document_reprocessing(
 
     reprocessed_doc = document_service.reprocess_document(db, db_doc=db_doc)
     return doc_schema.DocumentStatus.model_validate(reprocessed_doc)
+
+@router.get("/{kb_id}/documents/{doc_id}/chunks", response_model=List[Chunk])
+def get_document_chunks(
+    doc_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """
+    Get all chunks for a specific document.
+    """
+    doc = document_service.get_doc_by_id(db, doc_id=doc_id, user_id=current_user.id)
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    
+    points = qdrant_service.get_chunks_for_document(str(doc_id))
+    chunks = [{"id": point.id, **point.payload} for point in points]
+    return chunks
+
+@router.post("/{kb_id}/documents/{doc_id}/chunks", response_model=Chunk, status_code=status.HTTP_201_CREATED)
+def add_chunk_to_document(
+    doc_id: uuid.UUID,
+    chunk_in: ChunkCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+):
+    """
+    Manually add a new chunk to a document.
+    """
+    try:
+        new_point = document_service.add_manual_chunk(db, doc_id, chunk_in, current_user)
+        response_data = {"id": new_point.id, **new_point.payload}
+        return Chunk.model_validate(response_data)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
