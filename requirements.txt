@@ -15,7 +15,6 @@ celery==5.4.0
 qdrant-client
 sentence-transformers==2.7.0
 tiktoken==0.7.0
-unstructured==0.14.4
 nltk==3.8.1
 fastembed
 unstructured[pdf,docx]==0.14.4
@@ -24,3 +23,16 @@ nltk==3.8.1
 groq
 thefuzz
 python-levenshtein
+unstructured
+pandas
+openpyxl
+PyMuPDF
+pdfplumber
+python-docx
+docx2txt
+python-pptx
+beautifulsoup4
+striprtf
+pi_heif
+unstructured_inference
+pdf2image
