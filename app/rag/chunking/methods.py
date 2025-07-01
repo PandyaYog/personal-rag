@@ -506,12 +506,12 @@ class TokenBasedChunker:
         }
 
 class RecursiveCharacterChunker(BaseChunker):
-    """Recursively splits text using different separators."""
+    """Recursively splits text using different separators with proper overlap handling."""
     
-    def __init__(self, 
-                 chunk_size: int = 1000, 
-                 chunk_overlap: int = 100, 
-                 separators: Optional[List[str]] = None, 
+    def __init__(self,
+                 chunk_size: int = 1000,
+                 chunk_overlap: int = 100,
+                 separators: Optional[List[str]] = None,
                  **kwargs):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
@@ -521,52 +521,70 @@ class RecursiveCharacterChunker(BaseChunker):
         if not text:
             return []
         
-        final_chunks = []
+        chunks = []
         
-        def _recursive_split(text: str, separators: List[str]):
-            if not text or not separators:
-                if text:
-                    final_chunks.append(text.strip())
-                return
+        def _split_text_with_overlap(text: str, separators: List[str]) -> List[str]:
+            """Split text recursively and handle overlap properly."""
+            if len(text) <= self.chunk_size:
+                return [text.strip()] if text.strip() else []
             
-            separator = ""
-            for s in separators:
-                if s in text:
-                    separator = s
+            separator = None
+            for sep in separators:
+                if sep in text:
+                    separator = sep
                     break
             
             if not separator:
-                if len(text) <= self.chunk_size:
-                    final_chunks.append(text.strip())
-                else:
-                    for i in range(0, len(text), self.chunk_size):
-                        chunk = text[i:i + self.chunk_size]
-                        if chunk.strip():
-                            final_chunks.append(chunk.strip())
-                return
+                result = []
+                for i in range(0, len(text), self.chunk_size - self.chunk_overlap):
+                    end_pos = min(i + self.chunk_size, len(text))
+                    chunk = text[i:end_pos].strip()
+                    if chunk:
+                        result.append(chunk)
+                return result
             
-            splits = text.split(separator)
+            parts = text.split(separator)
+            result = []
             current_chunk = ""
             
-            for i, split in enumerate(splits):
-                test_chunk = current_chunk + separator + split if current_chunk else split
+            i = 0
+            while i < len(parts):
+                part = parts[i]
+                
+                if i > 0:  
+                    part = separator + part
+                
+                test_chunk = current_chunk + part if current_chunk else part
                 
                 if len(test_chunk) <= self.chunk_size:
                     current_chunk = test_chunk
+                    i += 1
                 else:
                     if current_chunk:
-                        final_chunks.append(current_chunk.strip())
+                        result.append(current_chunk.strip())
+                        
+                        if self.chunk_overlap > 0:
+                            overlap_start = max(0, len(current_chunk) - self.chunk_overlap)
+                            overlap_text = current_chunk[overlap_start:]
+                            current_chunk = overlap_text
+                        else:
+                            current_chunk = ""
                     
-                    if len(split) > self.chunk_size:
-                        _recursive_split(split, separators[1:])
+                    if len(part) > self.chunk_size:
+                        sub_chunks = _split_text_with_overlap(part, separators[1:] if len(separators) > 1 else separators)
+                        result.extend(sub_chunks)
+                        current_chunk = ""
+                        i += 1
                     else:
-                        current_chunk = split
+                        current_chunk = current_chunk + part if current_chunk else part
+                        i += 1
             
-            if current_chunk:
-                final_chunks.append(current_chunk.strip())
+            if current_chunk and current_chunk.strip():
+                result.append(current_chunk.strip())
+            
+            return result
         
-        _recursive_split(text, self.separators)
-        return [chunk for chunk in final_chunks if chunk]
+        return _split_text_with_overlap(text, self.separators)
 
 class HybridChunker(BaseChunker):
     """Combines semantic chunking with token-based splitting for optimal results."""
