@@ -105,3 +105,9 @@ models_token_splitting = {
         "dialogpt-medium": "microsoft/DialoGPT-medium",
     }
 }
+
+supported_file_type = ["pdf", "doc", "docx",
+                       "ppt", "pptx", "html",
+                       "rtf", "md", "odt", "odp"]
+
+split_differently = ["csv", "xlsx", "json"]

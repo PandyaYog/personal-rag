@@ -32,7 +32,7 @@ class AssistantBase(BaseModel):
 
 class AssistantCreate(AssistantBase):
     knowledge_base_ids: List[uuid.UUID] = Field(..., description="List of KB IDs to connect to this assistant.")
-    llm_config: Optional[LLMConfig] = None # Optional on create, will use defaults
+    llm_config: Optional[LLMConfig] = None 
     embedding_config: Optional[EmbeddingModelConfig] = None
 
 class AssistantUpdate(BaseModel):

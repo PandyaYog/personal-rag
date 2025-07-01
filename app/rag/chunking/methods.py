@@ -417,7 +417,6 @@ class TokenBasedChunker:
             encoding_name = self.TIKTOKEN_MODELS.get(self.model_name, self.model_name)
             self.tokenizer = tiktoken.get_encoding(encoding_name)
         except Exception as e:
-            # Fallback to cl100k_base
             self.tokenizer = tiktoken.get_encoding("cl100k_base")
     
     def _setup_huggingface(self):
@@ -425,7 +424,6 @@ class TokenBasedChunker:
         try:
             model_path = self.HUGGINGFACE_MODELS.get(self.model_name, self.model_name)
             self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-            # Handle tokenizers without pad_token
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
         except Exception as e:

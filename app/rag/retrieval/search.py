@@ -34,22 +34,32 @@ class AdvancedRetriever:
         return self.client.search(collection_name=QDRANT_COLLECTION_NAME, query_vector=models.NamedVector(name="dense", vector=qe['dense']), query_filter=f, limit=k, with_payload=True)
 
     def _sparse_search(self, qe, f, k):
-        return self.client.search(collection_name=QDRANT_COLLECTION_NAME, query_vector=models.NamedVector(name="sparse", vector=qe['sparse']), query_filter=f, limit=k, with_payload=True)
+        sparse_vector = qe['sparse']
+        if isinstance(sparse_vector, dict):
+            sparse_vector = models.SparseVector(indices=sparse_vector['indices'], values=sparse_vector['values'])
+        return self.client.search(collection_name=QDRANT_COLLECTION_NAME, query_vector=models.NamedSparseVector(name="sparse", vector=sparse_vector), query_filter=f, limit=k, with_payload=True)
 
     def _multi_vector_search(self, qe, f, k):
-        return self.client.search(collection_name=QDRANT_COLLECTION_NAME, query_vector=models.NamedVector(name="multi_vector", vector=qe['multi_vector']), query_filter=f, limit=k, with_payload=True)
-
+        multi_vector = qe['multi_vector']
+        if isinstance(multi_vector, list) and len(multi_vector) > 0 and isinstance(multi_vector[0], list):
+            if len(multi_vector) == 1:
+                multi_vector = multi_vector[0]
+            else:
+                import numpy as np
+                multi_vector = np.mean(multi_vector, axis=0).tolist()
+        elif isinstance(multi_vector, list) and len(multi_vector) == 896:
+            multi_vector = multi_vector[:128]
+        
+        return self.client.search(collection_name=QDRANT_COLLECTION_NAME, query_vector=models.NamedVector(name="multi_vector", vector=multi_vector), query_filter=f, limit=k, with_payload=True)
     # --- Advanced Search Methods ---
     def _hybrid_dense_sparse_search(self, qe, f, k):
         """Performs two separate searches and combines the results (simple approach)."""
         dense_hits = self._dense_search(qe, f, k)
         sparse_hits = self._sparse_search(qe, f, k)
         
-        # Simple combination and de-duplication
         all_hits = {hit.id: hit for hit in dense_hits}
         all_hits.update({hit.id: hit for hit in sparse_hits})
         
-        # Sort by score as a simple re-ranking mechanism
         return sorted(all_hits.values(), key=lambda x: x.score, reverse=True)[:k]
 
     def _rerank_search(self, qe, f, k, prefetch_vectors: List[str] = ["dense", "sparse"]):
@@ -59,9 +69,14 @@ class AdvancedRetriever:
         """
         prefetch = []
         for vec_name in prefetch_vectors:
-            prefetch.append(models.Prefetch(query=qe[vec_name], using=vec_name, limit=30, filter=f))
+            if vec_name == "sparse":
+                sparse_vector = qe[vec_name]
+                if isinstance(sparse_vector, dict):
+                    sparse_vector = models.SparseVector(indices=sparse_vector['indices'], values=sparse_vector['values'])
+                prefetch.append(models.Prefetch(query=sparse_vector, using=vec_name, limit=30, filter=f))
+            else:
+                prefetch.append(models.Prefetch(query=qe[vec_name], using=vec_name, limit=30, filter=f))
             
-        # The primary query reranks the prefetched results. We use multi_vector by default.
         result = self.client.query_points(
             collection_name=QDRANT_COLLECTION_NAME,
             prefetch=prefetch,
@@ -78,7 +93,13 @@ class AdvancedRetriever:
         """
         prefetch = []
         for vec_name in vectors:
-            prefetch.append(models.Prefetch(query=qe[vec_name], using=vec_name, limit=50, filter=f))
+            if vec_name == "sparse":
+                sparse_vector = qe[vec_name]
+                if isinstance(sparse_vector, dict):
+                    sparse_vector = models.SparseVector(indices=sparse_vector['indices'], values=sparse_vector['values'])
+                prefetch.append(models.Prefetch(query=sparse_vector, using=vec_name, limit=50, filter=f))
+            else:
+                prefetch.append(models.Prefetch(query=qe[vec_name], using=vec_name, limit=50, filter=f))
             
         result = self.client.query_points(
             collection_name=QDRANT_COLLECTION_NAME,
