@@ -3,7 +3,7 @@ from app.core.config import settings
 from typing import List
 # from app.rag.embedding.models import DENSE_DIM, MULTI_VECTOR_DIM
 
-DENSE_DIM = 384
+DENSE_DIM = 768
 MULTI_VECTOR_DIM = 128
 QDRANT_COLLECTION_NAME = "rag_from_scratch_collection"
 

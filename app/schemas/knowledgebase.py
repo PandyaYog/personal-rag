@@ -68,7 +68,7 @@ class KnowledgeBaseUpdate(KnowledgeBaseBase):
 
 class EmbeddingModelConfig(BaseModel):
     dense: str = Field(
-        "sentence-transformers/all-MiniLM-L6-v2", 
+        "BAAI/bge-base-en-v1.5", 
         description="Model for dense vector embeddings. FastEmbed compatible."
     )
     sparse: str = Field(
