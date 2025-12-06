@@ -62,7 +62,7 @@ graph TD
     end
 
     subgraph "AI Inference"
-        LLM[Groq API (Llama 3)]
+        LLM["Groq API (Llama 3)"]
     end
 
     %% Ingestion Flow
@@ -93,7 +93,7 @@ graph TD
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/YogPandya12/personal-rag.git
 cd personal-rag-system
 ```
 
