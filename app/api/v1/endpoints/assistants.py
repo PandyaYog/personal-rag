@@ -27,16 +27,13 @@ def list_assistants(
     current_user: User = Depends(deps.get_current_active_user),
 ):
     assistants = assistant_service.get_all_assistants_for_user(db, user_id=current_user.id)
-    # The manual formatting is no longer needed. We just need to add the num_chats.
     response = []
     for ass in assistants:
         ass_data = Assistant.model_validate(ass)
         ass_data.num_chats = len(ass.chats)
-        # The `knowledge_bases` field is now handled automatically by Pydantic.
         response.append(ass_data)
     return response
 
-# --- REFACTORED ---
 @router.get("/{assistant_id}", response_model=Assistant)
 def get_assistant(
     assistant_id: uuid.UUID,
@@ -47,7 +44,6 @@ def get_assistant(
     if not ass:
         raise HTTPException(status_code=404, detail="Assistant not found")
     
-    # Again, let Pydantic handle the serialization.
     ass_data = Assistant.model_validate(ass)
     ass_data.num_chats = len(ass.chats)
     return ass_data

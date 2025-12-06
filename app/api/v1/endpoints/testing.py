@@ -8,7 +8,10 @@ from app.schemas.testing import (
     ChunkingTestRequest, 
     ChunkingTestResponse,
     RetrievalTestRequest,
-    RetrievalTestResponse
+    RetrievalTestRequest,
+    RetrievalTestResponse,
+    EmbeddingRelevanceTestRequest,
+    EmbeddingRelevanceTestResponse
 )
 from app.services import testing_service
 
@@ -67,4 +70,33 @@ def test_retrieval(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An unexpected error occurred during retrieval: {e}"
+        )
+
+@router.post(
+    "/embedding-relevance",
+    response_model=EmbeddingRelevanceTestResponse,
+    summary="Test Embedding Relevance Differentiation",
+    description="Tests multiple embedding models on their ability to differentiate between a relevant and irrelevant passage for a given query."
+)
+def test_embedding_relevance(
+    request: EmbeddingRelevanceTestRequest,
+    # No auth required as it is stateless and uses public models, similar to chunking test? 
+    # The user request said "stateless API endpoint. It doesn't need to interact with our database models".
+    # However, loading models might be heavy. Let's keep it open or add auth if desired. 
+    # The user didn't specify auth for this one, but chunking has it optional/public?
+    # Chunking has `current_user` dependency but docstring says "public".
+    # Let's add current_user dependency to be safe and consistent with others, 
+    # preventing completely anonymous abuse if exposed.
+    current_user: User = Depends(deps.get_current_active_user)
+):
+    """
+    Tests embedding models for relevance differentiation.
+    """
+    try:
+        results = testing_service.test_embedding_relevance(request)
+        return {"results": results}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred during embedding test: {e}"
         )

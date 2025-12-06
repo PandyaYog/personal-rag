@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, users, knowledgebases, documents, assistants, chats, chunks, testing
+from app.api.v1.endpoints import auth, users, knowledgebases, documents, assistants, chats, chunks, testing, config
 
 api_router = APIRouter()
 
@@ -11,3 +11,4 @@ api_router.include_router(chunks.router, prefix="", tags=["Chunks"])
 api_router.include_router(assistants.router, prefix="/assistants", tags=["Assistants"])
 api_router.include_router(chats.router, prefix="", tags=["Chats"])
 api_router.include_router(testing.router, prefix="/testing", tags=["Testing"])
+api_router.include_router(config.router, prefix="/config", tags=["Configuration"])

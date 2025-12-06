@@ -48,3 +48,20 @@ class RetrievedChunk(BaseModel):
 
 class RetrievalTestResponse(BaseModel):
     retrieved_chunks: List[RetrievedChunk]
+
+
+# --- Schemas for the Embedding Relevance Tester Endpoint ---
+class EmbeddingRelevanceTestRequest(BaseModel):
+    models_to_test: List[str] = Field(..., min_items=1, description="List of embedding model names to test (e.g. 'BAAI/bge-small-en-v1.5').")
+    query: str = Field(..., min_length=1, description="The query to test.")
+    positive_passage: str = Field(..., min_length=1, description="A relevant passage (hit).")
+    negative_passage: str = Field(..., min_length=1, description="An irrelevant passage (miss).")
+
+class EmbeddingRelevanceResult(BaseModel):
+    model_name: str = Field(..., description="The name of the model.")
+    positive_score: float = Field(..., description="Cosine similarity between query and positive passage.")
+    negative_score: float = Field(..., description="Cosine similarity between query and negative passage.")
+    differentiation_score: float = Field(..., description="Difference between positive and negative scores.")
+
+class EmbeddingRelevanceTestResponse(BaseModel):
+    results: List[EmbeddingRelevanceResult]

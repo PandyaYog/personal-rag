@@ -39,7 +39,6 @@ def signup(
     
     user = user_service.create_user(db=db, user=user_in)
     
-    # Generate verification token and send email in the background
     token = security.generate_email_verification_token(user.email)
     background_tasks.add_task(send_verification_email, user.email, token)
     

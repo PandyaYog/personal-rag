@@ -75,7 +75,6 @@ def change_email(
     db.add(current_user)
     db.commit()
 
-    # Send verification to the new email
     token = security.generate_email_verification_token(email_in.new_email)
     background_tasks.add_task(send_verification_email, email_in.new_email, token)
 

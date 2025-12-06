@@ -89,10 +89,9 @@ def extract_doc_file(file_data: bytes, file_name: str) -> str:
             tmp_file.write(file_data)
             tmp_file.flush()
             
-            # Use antiword command line tool
             result = subprocess.run(['antiword', tmp_file.name], 
                                   capture_output=True, text=True, timeout=30)
-            os.unlink(tmp_file.name)  # Clean up temp file
+            os.unlink(tmp_file.name)  
             
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip()
@@ -120,7 +119,6 @@ def extract_pptx_file(file_data: bytes, file_name: str) -> str:
     except Exception as e:
         print(f"Unstructured PPTX parsing failed for {file_name}: {e}")
 
-    # Fallback to python-pptx
     try:
         from pptx import Presentation
         prs = Presentation(io.BytesIO(file_data))
@@ -233,18 +231,15 @@ def extract_csv_file(file_data: bytes, file_name: str) -> str:
         if df is None:
             df = pd.read_csv(io.BytesIO(file_data), encoding='utf-8', errors='replace')
 
-        # Convert to structured format for better RAG context
         records = df.to_dict('records')
 
-        # Create a text representation that includes structure
         text_parts = []
         text_parts.append(f"CSV File: {file_name}")
         text_parts.append(f"Columns: {', '.join(df.columns.tolist())}")
         text_parts.append(f"Total Rows: {len(df)}")
         text_parts.append("\nData Preview:")
 
-        # Add first few rows as context
-        for i, record in enumerate(records[:10]):  # First 10 rows
+        for i, record in enumerate(records[:10]): 
             text_parts.append(f"Row {i+1}: {json.dumps(record, default=str)}")
 
         if len(records) > 10:

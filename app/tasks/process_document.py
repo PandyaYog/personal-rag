@@ -25,7 +25,6 @@ def process_document_task(doc_id_str: str):
         db.commit()
         print(f"Processing doc: {doc.name} ({doc.id}) for KB: {kb.name}")
 
-        # Clear old data for this document from Qdrant before reprocessing
         qdrant_service.qdrant_service.delete_points_by_doc_id(doc_id=str(doc.id))
 
         # 1. Download from Minio and Parse

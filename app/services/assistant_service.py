@@ -51,7 +51,6 @@ def update_assistant(db: Session, db_assistant: Assistant, assistant_in: Assista
     if "embedding_config" in update_data:
         db_assistant.embedding_config = update_data["embedding_config"]
     if "knowledge_base_ids" in update_data:
-        # Re-validate and link KBs
         linked_kbs = db.query(KnowledgeBase).filter(
             KnowledgeBase.id.in_(update_data["knowledge_base_ids"]),
             KnowledgeBase.user_id == user_id
