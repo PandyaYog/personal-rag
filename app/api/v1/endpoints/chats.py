@@ -8,6 +8,8 @@ from app.db.models.user import User
 from app.db.models.assistant import Chat
 from app.schemas.chat import Chat as ChatSchema, ChatCreate, ChatWithHistory, UserQuery, Feedback, ChatUpdate, Message as MessageSchema
 from app.services import assistant_service, chat_service
+import asyncio
+from functools import partial
 
 router = APIRouter()
 
@@ -44,14 +46,18 @@ def get_chat_history(
     return chat
 
 @router.post("/assistants/{assistant_id}/chats/{chat_id}/query", response_model=MessageSchema)
-def query_chat(
+async def query_chat(
     chat_id: uuid.UUID,
     query_in: UserQuery,
     db: Session = Depends(get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ):
     try:
-        return chat_service.handle_user_query(db, query_in, chat_id, current_user)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, 
+            partial(chat_service.handle_user_query, db, query_in, chat_id, current_user)
+        )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -109,7 +115,7 @@ def delete_chat(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     
 @router.post("/chats/{chat_id}/messages/{message_id}/regenerate", response_model=MessageSchema)
-def regenerate_message_response(
+async def regenerate_message_response(
     chat_id: uuid.UUID,
     message_id: uuid.UUID,
     db: Session = Depends(get_db),
@@ -120,7 +126,11 @@ def regenerate_message_response(
     The previous versions are kept in the message's history.
     """
     try:
-        return chat_service.regenerate_response(db, chat_id, message_id, current_user)
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            partial(chat_service.regenerate_response, db, chat_id, message_id, current_user)
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:

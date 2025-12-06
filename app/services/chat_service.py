@@ -49,7 +49,6 @@ def handle_user_query(db: Session, query_in: UserQuery, chat_id: uuid.UUID, user
     
     else: # 'specific_doc' or 'whole_kb'
         # 5. Build retriever with assistant-specific config
-        print("dasvf", assistant.embedding_config)
         try:
             embedding_config_model = EmbeddingModelConfig(**assistant.embedding_config)
         except Exception as e:

@@ -2,10 +2,9 @@ from typing import List, Literal, NamedTuple, Dict
 from sqlalchemy.orm import Session
 from thefuzz import process
 
-from app.services import llm_service, kb_service # We'll use the LLM service here
+from app.services import llm_service, kb_service 
 
-# A simple, low-latency model is perfect for classification tasks.
-CLASSIFICATION_MODEL = "llama3-8b-8192" 
+CLASSIFICATION_MODEL = "llama-3.3-70b-versatile" 
 
 CLASSIFICATION_SYSTEM_PROMPT = """
 You are an expert query classifier. Your task is to determine the user's intent based on their query.

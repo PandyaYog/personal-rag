@@ -17,7 +17,7 @@ SEARCH_METHODS = Literal[
 ]
 class LLMConfig(BaseModel):
     provider: str = Field("groq", example="groq")
-    model: str = Field("llama3-8b-8192", example="llama3-8b-8192")
+    model: str = Field("llama-3.3-70b-versatile", example="llama-3.3-70b-versatile")
     temperature: float = Field(0.7, ge=0.0, le=2.0)
     top_p: float = Field(1.0, ge=0.0, le=1.0)
     system_prompt: str = Field(

@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     # --- LLM Provider (Groq) ---
     GROQ_API_KEY: str
 
+    # --- Embedding Service ---
+    EMBEDDING_SERVICE_URL: str = "http://embedding_service:8000"
+
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'

@@ -44,50 +44,41 @@ def process_document_task(doc_id_str: str):
         
         embedder = get_embedder(config=embedding_config)
 
-        # 4. Embed the chunks in batches to avoid memory issues
+        # 4. Embed and Upsert in Batches
         batch_size = 32  
-        embeddings_list = []
+        total_chunks = len(chunks)
         
-        for i in range(0, len(chunks), batch_size):
+        for i in range(0, total_chunks, batch_size):
             batch_chunks = chunks[i:i + batch_size]
             batch_embeddings = embedder.embed(batch_chunks)
-            embeddings_list.extend(batch_embeddings)
-        
-        # 5. Prepare points for Qdrant
-        points_to_upsert = []
-        for i, (chunk_text, embedding_dict) in enumerate(zip(chunks, embeddings_list)):
-            point_id = str(uuid.uuid4())
-            payload = {
-                "kb_id": str(kb.id),
-                "doc_id": str(doc.id),
-                "doc_name": doc.name,
-                "user_id": str(doc.user_id),
-                "chunk_num": i + 1,
-                "chunk_content": chunk_text,
-            }
             
-            vector_payload = {}
+            points_to_upsert = []
+            for j, (chunk_text, embedding_dict) in enumerate(zip(batch_chunks, batch_embeddings)):
+                point_id = str(uuid.uuid4())
+                payload = {
+                    "kb_id": str(kb.id),
+                    "doc_id": str(doc.id),
+                    "doc_name": doc.name,
+                    "user_id": str(doc.user_id),
+                    "chunk_num": i + j + 1,
+                    "chunk_content": chunk_text,
+                }
+                
+                vector_payload = {}
+                if embedding_dict.get('dense') is not None:
+                    vector_payload['dense'] = embedding_dict['dense']
+                if embedding_dict.get('sparse') is not None:
+                    vector_payload['sparse'] = embedding_dict['sparse']
+                if embedding_dict.get('multi_vector') is not None:
+                    vector_payload['multi_vector'] = embedding_dict['multi_vector']
+                
+                if vector_payload: 
+                    points_to_upsert.append(
+                        models.PointStruct(id=point_id, vector=vector_payload, payload=payload)
+                    )
             
-            if embedding_dict.get('dense') is not None:
-                vector_payload['dense'] = embedding_dict['dense']
-            
-            if embedding_dict.get('sparse') is not None:
-                vector_payload['sparse'] = embedding_dict['sparse']
-            
-            if embedding_dict.get('multi_vector') is not None:
-                vector_payload['multi_vector'] = embedding_dict['multi_vector']
-            
-            if vector_payload: 
-                points_to_upsert.append(
-                    models.PointStruct(id=point_id, vector=vector_payload, payload=payload)
-                )
-
-        # 6. Upsert to Qdrant in batches
-        if points_to_upsert:
-            batch_size = 100  
-            for i in range(0, len(points_to_upsert), batch_size):
-                batch_points = points_to_upsert[i:i + batch_size]
-                qdrant_service.qdrant_service.upsert_points(points=batch_points)
+            if points_to_upsert:
+                qdrant_service.qdrant_service.upsert_points(points=points_to_upsert)
 
         # 7. Update status to COMPLETED
         doc.processing_status = "COMPLETED"
