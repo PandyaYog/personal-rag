@@ -43,6 +43,10 @@ def get_multi_vector_model(model_name: str) -> LateInteractionTextEmbedding:
         _multi_vector_model_cache[model_name] = LateInteractionTextEmbedding(model_name=model_name)
     return _multi_vector_model_cache[model_name]
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
 @app.post("/embed", response_model=EmbedResponse)
 async def embed(request: EmbedRequest):
     results = []

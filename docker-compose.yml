@@ -86,11 +86,16 @@ services:
       - REDIS_HOST=redis
       - QDRANT_HOST=qdrant
     depends_on:
-      - postgres
-      - redis
-      - qdrant
-      - minio
-      - embedding_service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      embedding_service:
+        condition: service_healthy
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
@@ -109,11 +114,16 @@ services:
       - REDIS_HOST=redis
       - QDRANT_HOST=qdrant
     depends_on:
-      - postgres
-      - redis
-      - qdrant
-      - minio
-      - embedding_service
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      embedding_service:
+        condition: service_healthy
     restart: unless-stopped
 
   embedding_service:
@@ -126,6 +136,12 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 300s
 
 volumes:
   postgres_data:
