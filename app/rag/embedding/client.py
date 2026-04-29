@@ -1,7 +1,10 @@
 import httpx
 from typing import List, Dict, Any
+import logging
 from app.schemas.knowledgebase import EmbeddingModelConfig
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 class RemoteEmbedder:
     def __init__(self, config: EmbeddingModelConfig):
