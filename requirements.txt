@@ -38,3 +38,5 @@ striprtf
 pi_heif
 unstructured_inference
 pdf2image
+fastapi-mail==1.4.1
+email-validator==2.1.1

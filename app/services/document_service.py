@@ -84,8 +84,29 @@ def update_document(db: Session, db_doc: Document, doc_in: DocumentUpdate) -> Do
 
 # --- DELETE ---
 def delete_document(db: Session, db_doc: Document) -> Document:
-    qdrant_service.delete_points_by_doc_id(str(db_doc.id))
+    """
+    Deletes a document and all its associated data:
+    - Chunk vectors from the main Qdrant collection
+    - Summary vector from the summary Qdrant collection
+    - File from Minio object storage
+    - Record from PostgreSQL
+    """
+    doc_id_str = str(db_doc.id)
+    
+    # Clean up Qdrant chunk vectors
+    qdrant_service.delete_points_by_doc_id(doc_id_str)
+    
+    # Clean up Qdrant summary vector
+    try:
+        qdrant_service.delete_summary_by_doc_id(doc_id_str)
+    except Exception as e:
+        # Log but don't block deletion if summary cleanup fails
+        print(f"WARNING: Failed to delete summary for doc {doc_id_str}: {e}")
+    
+    # Clean up Minio file
     minio_client.delete_file(db_doc.file_path_in_minio)
+    
+    # Remove from database
     db.delete(db_doc)
     db.commit()
     return db_doc

@@ -1,15 +1,26 @@
 import uuid
+import logging
 from sqlalchemy.orm import Session
 from qdrant_client import models
 from sqlalchemy import desc
-from typing import List
+from typing import List, Tuple
 from app.db.models.user import User
 from app.db.models.assistant import Assistant, Chat, Message
 from app.schemas.chat import UserQuery, ChatUpdate
 from app.schemas.knowledgebase import EmbeddingModelConfig
 from app.services.query_classifier_service import classify_query
+from app.services.qdrant_service import qdrant_service as qdrant_svc
 from app.rag.retrieval.search import get_retriever
 from app.services.llm_service import llm_client
+
+logger = logging.getLogger(__name__)
+
+SUMMARY_SYSTEM_PROMPT = (
+    "You are an AI assistant with access to pre-generated document summaries. "
+    "Use the provided summary context to answer the user's query accurately. "
+    "If the user asked for a summary, present the information in a clear and structured manner. "
+    "Do not fabricate information beyond what is in the summaries."
+)
 
 def handle_user_query(db: Session, query_in: UserQuery, chat_id: uuid.UUID, user: User) -> Message:
     """Main RAG orchestration logic."""
@@ -39,55 +50,86 @@ def handle_user_query(db: Session, query_in: UserQuery, chat_id: uuid.UUID, user
 
     # 3. Classify the query
     classification = classify_query(db, query=query_in.query, assistant_id=assistant.id)
-    print("ckpt0")
+    logger.info(f"Query classified as: {classification.query_type}")
     response_text = ""
     reference_docs = []
 
     # 4. Execute logic based on classification
     if classification.query_type == "general":
-        response_text = "Hello! I am an AI assistant designed to help you with your documents. How can I assist you today?"
+        general_prompt = "You are a helpful AI assistant connected to a user's personal knowledge base. Respond to the following general query naturally and politely."
+        response_text = llm_client.generate_response(
+            model=assistant.llm_config['model'],
+            system_prompt=general_prompt,
+            user_query=query_in.query,
+            context="No context needed.",
+            temp=0.7,
+            top_p=1.0
+        )
+        
+    elif classification.query_type == "count":
+        from app.services import kb_service
+        docs = kb_service.get_all_docs_for_assistant(db, assistant_id=assistant.id)
+        doc_count = len(docs) if docs else 0
+        doc_names = [doc.name for doc in docs] if docs else []
+        context = f"The knowledge base currently contains {doc_count} documents. Sources: {', '.join(doc_names)}."
+        
+        count_prompt = "You are an AI assistant. Use the provided context to answer the user's question about the knowledge base statistics or data sources."
+        response_text = llm_client.generate_response(
+            model=assistant.llm_config['model'],
+            system_prompt=count_prompt,
+            user_query=query_in.query,
+            context=context,
+            temp=0.3,
+            top_p=1.0
+        )
+    elif classification.query_type == "summary":
+        context, reference_docs = _build_summary_context(
+            db, classification, assistant
+        )
+        response_text = llm_client.generate_response(
+            model=assistant.llm_config['model'],
+            system_prompt=SUMMARY_SYSTEM_PROMPT,
+            user_query=query_in.query,
+            context=context,
+            temp=0.3,
+            top_p=1.0
+        )
     
     else: # 'specific_doc' or 'whole_kb'
         # 5. Build retriever with assistant-specific config
         try:
             embedding_config_model = EmbeddingModelConfig(**assistant.embedding_config)
         except Exception as e:
-            # This provides robust error handling if the config in the DB is ever malformed.
             raise ValueError(f"Invalid embedding configuration for assistant {assistant.id}: {e}")
         
-        # Now, pass the Pydantic model instance to the retriever.
         retriever = get_retriever(embedding_config=embedding_config_model)
         
-        print("CKPT1")
         # 6. Build search filters
         kb_ids = [str(kb.id) for kb in assistant.knowledge_bases]
         must_conditions = [
             models.FieldCondition(key="user_id", match=models.MatchValue(value=str(user.id))),
             models.FieldCondition(key="kb_id", match=models.MatchAny(any=kb_ids))
         ]
-        print("CKPT2")
         if classification.query_type == "specific_doc" and classification.doc_ids:
             must_conditions.append(
                 models.FieldCondition(key="doc_id", match=models.MatchAny(any=classification.doc_ids))
             )
-        print("CKPT3")
         search_filter = models.Filter(must=must_conditions)
-        print("CKPT4")
+        
         # 7. Perform retrieval
         search_results = retriever.search(
             query=query_in.query,
             filters=search_filter,
             search_type=assistant.llm_config.get("search_type", "full_rrf")
         )
-        print("CKPT5")
+        
         # 8. Format context for LLM
         context = "\n\n---\n\n".join([hit.payload['chunk_content'] for hit in search_results])
         unique_doc_names = list(set([hit.payload['doc_name'] for hit in search_results]))
         reference_docs = unique_doc_names
-        print("CKPT16")
         if not context:
             context = "No relevant information found in the knowledge base."
-        print("CKPT7")
+        
         # 9. Generate response with LLM
         response_text = llm_client.generate_response(
             model=assistant.llm_config['model'],
@@ -97,7 +139,6 @@ def handle_user_query(db: Session, query_in: UserQuery, chat_id: uuid.UUID, user
             temp=assistant.llm_config['temperature'],
             top_p=assistant.llm_config['top_p']
         )
-        print("CKPT7")
     # 10. Save assistant's message
 
     assistant_message_content = {
@@ -207,7 +248,7 @@ def regenerate_response(db: Session, chat_id: uuid.UUID, message_id: uuid.UUID, 
         raise ValueError("Original user query could not be found.")
 
     # 3. Re-run the RAG pipeline (Steps 3-8 from handle_user_query)
-    query = original_user_message.content['text']
+    query = original_user_message.content['versions'][-1]['text']
     assistant = assistant_message.chat.assistant
     
     new_response_text, new_reference_docs = perform_rag_pipeline(db, query, assistant, user)
@@ -233,12 +274,61 @@ def regenerate_response(db: Session, chat_id: uuid.UUID, message_id: uuid.UUID, 
     
     return assistant_message
 
-def perform_rag_pipeline(db, query, assistant, user):
+def perform_rag_pipeline(db, query, assistant, user) -> Tuple[str, List[str]]:
+    """
+    Shared RAG pipeline used by both handle_user_query and regenerate_response.
+    Routes queries through the appropriate handler based on classification.
+    
+    Returns:
+        A tuple of (response_text, reference_docs).
+    """
     classification = classify_query(db, query=query, assistant_id=assistant.id)
     
     if classification.query_type == "general":
-        return "Hello! I am an AI assistant. How can I help?", []
+        general_prompt = "You are a helpful AI assistant connected to a user's personal knowledge base. Respond to the following general query naturally and politely."
+        response_text = llm_client.generate_response(
+            model=assistant.llm_config['model'],
+            system_prompt=general_prompt,
+            user_query=query,
+            context="No context needed.",
+            temp=0.7,
+            top_p=1.0
+        )
+        return response_text, []
+        
+    elif classification.query_type == "count":
+        from app.services import kb_service
+        docs = kb_service.get_all_docs_for_assistant(db, assistant_id=assistant.id)
+        doc_count = len(docs) if docs else 0
+        doc_names = [doc.name for doc in docs] if docs else []
+        context = f"The knowledge base currently contains {doc_count} documents. Sources: {', '.join(doc_names)}."
+        
+        count_prompt = "You are an AI assistant. Use the provided context to answer the user's question about the knowledge base statistics or data sources."
+        response_text = llm_client.generate_response(
+            model=assistant.llm_config['model'],
+            system_prompt=count_prompt,
+            user_query=query,
+            context=context,
+            temp=0.3,
+            top_p=1.0
+        )
+        return response_text, []
 
+    elif classification.query_type == "summary":
+        context, reference_docs = _build_summary_context(
+            db, classification, assistant
+        )
+        response_text = llm_client.generate_response(
+            model=assistant.llm_config['model'],
+            system_prompt=SUMMARY_SYSTEM_PROMPT,
+            user_query=query,
+            context=context,
+            temp=0.3,
+            top_p=1.0
+        )
+        return response_text, reference_docs
+
+    # Default: specific_doc or whole_kb → vector search
     try:
         embedding_config_model = EmbeddingModelConfig(**assistant.embedding_config)
     except Exception as e:
@@ -267,3 +357,68 @@ def perform_rag_pipeline(db, query, assistant, user):
         temp=assistant.llm_config['temperature'], top_p=assistant.llm_config['top_p']
     )
     return response_text, unique_doc_names
+
+
+# ─── Summary Context Builder ─────────────────────────────────────────────────
+
+def _build_summary_context(
+    db: Session,
+    classification,
+    assistant: Assistant
+) -> Tuple[str, List[str]]:
+    """
+    Builds the context string for summary-type queries by fetching pre-computed
+    summaries from the Qdrant summary collection.
+    
+    Handles two cases:
+        1. Specific document summary (doc_ids provided) — fetches one summary.
+        2. General overview (no doc_ids) — fetches summaries for all docs in the assistant's KBs.
+    
+    Args:
+        db: Database session.
+        classification: The ClassificationResult from the query classifier.
+        assistant: The Assistant ORM instance.
+        
+    Returns:
+        A tuple of (context_string, reference_doc_names).
+    """
+    reference_docs = []
+
+    if classification.doc_ids:
+        # User asked for a specific document's summary
+        doc_id = classification.doc_ids[0]
+        summary_point = qdrant_svc.get_summary_by_doc_id(doc_id)
+        
+        if summary_point:
+            context = summary_point.payload['summary_text']
+            reference_docs = [summary_point.payload['doc_name']]
+            logger.info(f"Retrieved summary for doc_id: {doc_id}")
+        else:
+            context = (
+                "No pre-computed summary is available for this document yet. "
+                "The document may still be processing. Please try again later."
+            )
+            logger.warning(f"No summary found in Qdrant for doc_id: {doc_id}")
+    else:
+        # User asked for a general overview of all documents
+        all_summaries = []
+        for kb in assistant.knowledge_bases:
+            for doc in kb.documents:
+                summary_point = qdrant_svc.get_summary_by_doc_id(str(doc.id))
+                if summary_point:
+                    doc_name = summary_point.payload['doc_name']
+                    summary_text = summary_point.payload['summary_text']
+                    all_summaries.append(f"## {doc_name}\n{summary_text}")
+                    reference_docs.append(doc_name)
+        
+        if all_summaries:
+            context = "\n\n---\n\n".join(all_summaries)
+            logger.info(f"Retrieved summaries for {len(all_summaries)} documents")
+        else:
+            context = (
+                "No document summaries are available yet. "
+                "Documents may still be processing. Please try again later."
+            )
+            logger.warning("No summaries found for any documents in assistant's KBs")
+
+    return context, reference_docs

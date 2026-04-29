@@ -1,26 +1,133 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 
 from app.schemas import user as user_schema, token as token_schema
 from app.services import user_service
 from app.utils import security
 from app.db.session import get_db
+from app.core.config import settings
 
 router = APIRouter()
 
-# --- Mock Email Sending Function ---
-def send_verification_email(email: str, token: str):
+# --- Email Configuration ---
+conf = ConnectionConfig(
+    MAIL_USERNAME=settings.MAIL_USERNAME,
+    MAIL_PASSWORD=settings.MAIL_PASSWORD,
+    MAIL_FROM=settings.MAIL_FROM,
+    MAIL_PORT=settings.MAIL_PORT,
+    MAIL_SERVER=settings.MAIL_SERVER,
+    MAIL_STARTTLS=settings.MAIL_STARTTLS,
+    MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
+    USE_CREDENTIALS=settings.USE_CREDENTIALS,
+    VALIDATE_CERTS=settings.VALIDATE_CERTS
+)
+
+async def send_verification_email(email: str, token: str):
     """
-    Simulates sending an email. In a real app, this would use a service like SendGrid or SMTP.
-    For this project, we'll just print it to the console.
+    Sends an email using fastapi-mail.
     """
-    verification_link = f"http://localhost:8000/v1/auth/confirm-email?token={token}" # Example link
-    print("---- SENDING VERIFICATION EMAIL ----")
-    print(f"To: {email}")
-    print(f"Subject: Please verify your email address")
-    print(f"Click the link to verify: {verification_link}")
-    print("------------------------------------")
+    verification_link = f"{settings.FRONTEND_URL}/confirm-email?token={token}"
+    
+    html = f"""
+    <h2>Welcome to Personal RAG System!</h2>
+    <p>Please verify your email address by clicking on the link below:</p>
+    <a href="{verification_link}">Verify Email</a>
+    <br><br>
+    <p>If you did not request this, please ignore this email.</p>
+    """
+
+    message = MessageSchema(
+        subject="Please verify your email address",
+        recipients=[email],
+        body=html,
+        subtype=MessageType.html
+    )
+    
+    fm = FastMail(conf)
+    try:
+        await fm.send_message(message)
+        print(f"Verification email sent to {email}")
+    except Exception as e:
+        print(f"Failed to send email to {email}. Error: {e}")
+
+async def send_password_reset_email(email: str, token: str):
+    """
+    Sends a password reset email using fastapi-mail.
+    """
+    reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+    
+    html = f"""
+    <h2>Password Reset Request</h2>
+    <p>You requested to reset your password. Click the link below to set a new password:</p>
+    <a href="{reset_link}">Reset Password</a>
+    <br><br>
+    <p>This link will expire in 15 minutes.</p>
+    <p>If you did not request a password reset, please ignore this email.</p>
+    """
+
+    message = MessageSchema(
+        subject="Password Reset Request",
+        recipients=[email],
+        body=html,
+        subtype=MessageType.html
+    )
+    
+    fm = FastMail(conf)
+    try:
+        await fm.send_message(message)
+        print(f"Password reset email sent to {email}")
+    except Exception as e:
+        print(f"Failed to send password reset email to {email}. Error: {e}")
+
+@router.post("/forgot-password")
+def forgot_password(
+    request: user_schema.ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Initiates the password reset flow. 
+    Returns a generic message regardless of whether the email exists.
+    """
+    user = user_service.get_user_by_email(db, email=request.email)
+    
+    if user:
+        token = security.generate_password_reset_token(user.email)
+        
+        if settings.MAIL_SERVER:
+            background_tasks.add_task(send_password_reset_email, user.email, token)
+        else:
+            print(f"WARNING: MAIL_SERVER not configured. Skipping password reset email to {user.email}. Token: {token}")
+
+    return {"message": "If an account exists for that email, we have sent a password reset link."}
+
+@router.post("/reset-password")
+def reset_password(
+    request: user_schema.ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Resets the user's password using the token received via email.
+    """
+    email = security.verify_password_reset_token(request.token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Invalid or expired password reset token."
+        )
+        
+    user = user_service.get_user_by_email(db, email=email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    user.hashed_password = security.get_password_hash(request.new_password)
+    db.add(user)
+    db.commit()
+    
+    return {"message": "Password has been reset successfully."}
+
 
 
 @router.post("/signup", response_model=user_schema.User, status_code=status.HTTP_201_CREATED)
@@ -40,7 +147,12 @@ def signup(
     user = user_service.create_user(db=db, user=user_in)
     
     token = security.generate_email_verification_token(user.email)
-    background_tasks.add_task(send_verification_email, user.email, token)
+    
+    # We must be careful not to trigger exceptions if SMTP isn't configured properly during tests
+    if settings.MAIL_SERVER:
+        background_tasks.add_task(send_verification_email, user.email, token)
+    else:
+        print(f"WARNING: MAIL_SERVER not configured. Skipping email to {user.email}. Verification token: {token}")
     
     return user
 

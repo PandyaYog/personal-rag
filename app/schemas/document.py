@@ -28,3 +28,6 @@ class DocumentStatus(BaseModel):
     id: uuid.UUID
     name: str
     processing_status: str
+
+    class Config:
+        from_attributes = True

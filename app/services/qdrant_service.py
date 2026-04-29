@@ -1,20 +1,24 @@
 from qdrant_client import QdrantClient, models
 from app.core.config import settings
-from typing import List
-# from app.rag.embedding.models import DENSE_DIM, MULTI_VECTOR_DIM
+from typing import List, Optional
 
 DENSE_DIM = 768
 MULTI_VECTOR_DIM = 128
 QDRANT_COLLECTION_NAME = "rag_from_scratch_collection"
+SUMMARY_COLLECTION_NAME = "document_summaries"
+
 
 class QdrantService:
     def __init__(self):
         self.client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=180.0)
         self._ensure_collection_exists()
+        self._ensure_summary_collection_exists()
+
+    # ─── Collection Initialization ────────────────────────────────────────────
 
     def _ensure_collection_exists(self):
         """
-        Creates the main collection in Qdrant if it doesn't exist,
+        Creates the main chunk collection in Qdrant if it doesn't exist,
         configured for dense, sparse, and multi-vector storage.
         """
         try:
@@ -56,11 +60,42 @@ class QdrantService:
                     ),
                 ),
             )
-            
             print("Collection created successfully with dense, sparse, and multi-vector configs.")
 
+    def _ensure_summary_collection_exists(self):
+        """
+        Creates a dedicated collection for document summaries if it doesn't exist.
+        Uses dense vectors only — summaries are retrieved by metadata filters (doc_id),
+        not by semantic similarity search, so sparse/multi-vector are unnecessary.
+        """
+        try:
+            self.client.get_collection(collection_name=SUMMARY_COLLECTION_NAME)
+            print(f"Summary collection '{SUMMARY_COLLECTION_NAME}' already exists.")
+        except Exception:
+            print(f"Summary collection '{SUMMARY_COLLECTION_NAME}' not found. Creating...")
+            try:
+                self.client.create_collection(
+                    collection_name=SUMMARY_COLLECTION_NAME,
+                    vectors_config={
+                        "dense": models.VectorParams(
+                            size=DENSE_DIM,
+                            distance=models.Distance.COSINE
+                        ),
+                    },
+                    hnsw_config=models.HnswConfigDiff(
+                        m=16,
+                        ef_construct=100,
+                    ),
+                )
+                print(f"Summary collection '{SUMMARY_COLLECTION_NAME}' created successfully.")
+            except Exception as e:
+                print(f"ERROR: Failed to create summary collection: {e}")
+                raise
+
+    # ─── Chunk Collection Operations ──────────────────────────────────────────
+
     def upsert_points(self, points):
-        """Upserts points into the collection."""
+        """Upserts points into the main chunk collection."""
         self.client.upsert(
             collection_name=QDRANT_COLLECTION_NAME,
             points=points,
@@ -85,7 +120,7 @@ class QdrantService:
         return points
     
     def delete_points_by_doc_id(self, doc_id: str):
-        """Deletes all points associated with a specific document ID."""
+        """Deletes all chunk points associated with a specific document ID."""
         self.client.delete(
             collection_name=QDRANT_COLLECTION_NAME,
             points_selector=models.FilterSelector(
@@ -99,7 +134,7 @@ class QdrantService:
                 )
             ),
         )
-        print(f"Deleted all points for doc_id: {doc_id} from Qdrant.")
+        print(f"Deleted all chunk points for doc_id: {doc_id} from Qdrant.")
 
     def upsert_single_point(self, point: models.PointStruct):
         """Upserts a single point, useful for updating or adding a chunk."""
@@ -108,4 +143,85 @@ class QdrantService:
             points=[point],
             wait=True
         )
+
+    # ─── Summary Collection Operations ────────────────────────────────────────
+
+    def upsert_summary_point(self, point: models.PointStruct) -> None:
+        """
+        Upserts a single summary point into the dedicated summary collection.
+        
+        Args:
+            point: A PointStruct containing the dense vector and payload with
+                   keys: kb_id, doc_id, doc_name, user_id, summary_text, 
+                   summary_method, chunk_count.
+        """
+        try:
+            self.client.upsert(
+                collection_name=SUMMARY_COLLECTION_NAME,
+                points=[point],
+                wait=True
+            )
+            print(f"Upserted summary for doc_id: {point.payload.get('doc_id', 'unknown')}")
+        except Exception as e:
+            print(f"ERROR: Failed to upsert summary point: {e}")
+            raise
+
+    def get_summary_by_doc_id(self, doc_id: str) -> Optional[models.Record]:
+        """
+        Retrieves the summary point for a specific document from the summary collection.
+        
+        Args:
+            doc_id: The UUID string of the document.
+            
+        Returns:
+            The summary Record if found, otherwise None.
+        """
+        try:
+            points, _ = self.client.scroll(
+                collection_name=SUMMARY_COLLECTION_NAME,
+                scroll_filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="doc_id",
+                            match=models.MatchValue(value=doc_id)
+                        )
+                    ]
+                ),
+                limit=1,
+                with_payload=True,
+                with_vectors=False
+            )
+            return points[0] if points else None
+        except Exception as e:
+            print(f"ERROR: Failed to retrieve summary for doc_id {doc_id}: {e}")
+            return None
+
+    def delete_summary_by_doc_id(self, doc_id: str) -> None:
+        """
+        Deletes the summary point associated with a specific document ID 
+        from the summary collection. Called during document deletion or reprocessing.
+        
+        Args:
+            doc_id: The UUID string of the document whose summary should be removed.
+        """
+        try:
+            self.client.delete(
+                collection_name=SUMMARY_COLLECTION_NAME,
+                points_selector=models.FilterSelector(
+                    filter=models.Filter(
+                        must=[
+                            models.FieldCondition(
+                                key="doc_id",
+                                match=models.MatchValue(value=doc_id),
+                            ),
+                        ]
+                    )
+                ),
+            )
+            print(f"Deleted summary for doc_id: {doc_id} from summary collection.")
+        except Exception as e:
+            print(f"ERROR: Failed to delete summary for doc_id {doc_id}: {e}")
+            raise
+
+
 qdrant_service = QdrantService()

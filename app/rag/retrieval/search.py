@@ -31,13 +31,15 @@ class AdvancedRetriever:
 
     # --- Basic Search Methods ---
     def _dense_search(self, qe, f, k):
-        return self.client.search(collection_name=QDRANT_COLLECTION_NAME, query_vector=models.NamedVector(name="dense", vector=qe['dense']), query_filter=f, limit=k, with_payload=True)
+        result = self.client.query_points(collection_name=QDRANT_COLLECTION_NAME, query=qe['dense'], using="dense", query_filter=f, limit=k, with_payload=True)
+        return result.points
 
     def _sparse_search(self, qe, f, k):
         sparse_vector = qe['sparse']
         if isinstance(sparse_vector, dict):
             sparse_vector = models.SparseVector(indices=sparse_vector['indices'], values=sparse_vector['values'])
-        return self.client.search(collection_name=QDRANT_COLLECTION_NAME, query_vector=models.NamedSparseVector(name="sparse", vector=sparse_vector), query_filter=f, limit=k, with_payload=True)
+        result = self.client.query_points(collection_name=QDRANT_COLLECTION_NAME, query=sparse_vector, using="sparse", query_filter=f, limit=k, with_payload=True)
+        return result.points
 
     def _multi_vector_search(self, qe, f, k):
         multi_vector = qe['multi_vector']
@@ -50,7 +52,8 @@ class AdvancedRetriever:
         elif isinstance(multi_vector, list) and len(multi_vector) == 896:
             multi_vector = multi_vector[:128]
         
-        return self.client.search(collection_name=QDRANT_COLLECTION_NAME, query_vector=models.NamedVector(name="multi_vector", vector=multi_vector), query_filter=f, limit=k, with_payload=True)
+        result = self.client.query_points(collection_name=QDRANT_COLLECTION_NAME, query=multi_vector, using="multi_vector", query_filter=f, limit=k, with_payload=True)
+        return result.points
     # --- Advanced Search Methods ---
     def _hybrid_dense_sparse_search(self, qe, f, k):
         """Performs two separate searches and combines the results (simple approach)."""

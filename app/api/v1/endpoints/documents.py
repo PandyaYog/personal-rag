@@ -117,14 +117,7 @@ async def download_document(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     
     def _download_and_read():
-        file_object = minio_service.minio_client.download_file(db_doc.file_path_in_minio)
-        if not file_object:
-            return None
-        try:
-            return file_object.read()
-        finally:
-            file_object.close()
-            file_object.release_conn()
+        return minio_service.minio_client.get_object_file(db_doc.file_path_in_minio)
 
     loop = asyncio.get_running_loop()
     file_content = await loop.run_in_executor(None, _download_and_read)

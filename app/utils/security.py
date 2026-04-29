@@ -46,3 +46,31 @@ def verify_email_verification_token(token: str) -> str | None:
         return None
     except JWTError:
         return None
+
+def generate_password_reset_token(email: str) -> str:
+    """
+    Generates a short-lived JWT for password reset.
+    Expires in 15 minutes for enhanced security.
+    """
+    expires = timedelta(minutes=15)
+    to_encode = {
+        "exp": datetime.now(timezone.utc) + expires,
+        "iat": datetime.now(timezone.utc),
+        "sub": email,
+        "scope": "password_reset"
+    }
+    return jwt.encode(to_encode, settings.APP_SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def verify_password_reset_token(token: str) -> str | None:
+    """
+    Verifies the password reset token and returns the email if valid.
+    Returns None if token is invalid, expired, or has the wrong scope.
+    """
+    try:
+        payload = jwt.decode(token, settings.APP_SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("scope") == "password_reset":
+            return payload.get("sub")
+        return None
+    except JWTError:
+        # Standard JWT exceptions (ExpiredSignatureError, JWTClaimsError, etc.) are caught here
+        return None

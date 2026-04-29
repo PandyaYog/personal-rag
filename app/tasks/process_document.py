@@ -1,13 +1,16 @@
 import uuid
+import logging
 from ..core.celery_app import celery_app
 from sqlalchemy.orm import Session
 from qdrant_client import models
 from ..schemas.knowledgebase import EmbeddingModelConfig
 from app.db.session import SessionLocal
-from app.services import document_service, kb_service, minio_service, qdrant_service
+from app.services import document_service, kb_service, minio_service, qdrant_service, summary_service
 from app.rag.chunking.methods import get_chunker
 from app.rag.embedding.models import get_embedder
 from app.rag.parsing import extract_text_from_file
+
+logger = logging.getLogger(__name__)
 
 @celery_app.task
 def process_document_task(doc_id_str: str):
@@ -25,7 +28,9 @@ def process_document_task(doc_id_str: str):
         db.commit()
         print(f"Processing doc: {doc.name} ({doc.id}) for KB: {kb.name}")
 
+        # Clean up existing chunks and summary (handles reprocessing)
         qdrant_service.qdrant_service.delete_points_by_doc_id(doc_id=str(doc.id))
+        qdrant_service.qdrant_service.delete_summary_by_doc_id(doc_id=str(doc.id))
 
         # 1. Download from Minio and Parse
         file_data = minio_service.minio_client.get_object_file(doc.file_path_in_minio)
@@ -80,9 +85,30 @@ def process_document_task(doc_id_str: str):
             if points_to_upsert:
                 qdrant_service.qdrant_service.upsert_points(points=points_to_upsert)
 
+        # 5. Update chunk count before summary generation
+        doc.num_chunks = len(chunks)
+        db.commit()
+
+        # 6. Generate and store document summary
+        logger.info(f"Starting summary generation for '{doc.name}'")
+        try:
+            summary_service.generate_and_store_summary(
+                full_text=full_text,
+                doc=doc,
+                kb=kb,
+                embedding_config=embedding_config
+            )
+            logger.info(f"Summary generation completed for '{doc.name}'")
+        except Exception as summary_err:
+            # Summary failure should NOT fail the entire document processing pipeline.
+            # The document's chunks are already stored and usable.
+            logger.error(
+                f"Summary generation failed for '{doc.name}': {summary_err}. "
+                f"Document will be marked COMPLETED without a summary."
+            )
+
         # 7. Update status to COMPLETED
         doc.processing_status = "COMPLETED"
-        doc.num_chunks = len(chunks)
         print(f"Successfully processed document: {doc.name}")
 
     except Exception as e:

@@ -23,6 +23,14 @@ class PasswordUpdate(BaseModel):
 class EmailUpdate(BaseModel):
     new_email: EmailStr
     password: str 
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr = Field(..., example="user@example.com")
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., description="The password reset token received via email")
+    new_password: str = Field(..., min_length=8, example="new_strong_password123!")
+    
     
 class User(UserBase):
     id: uuid.UUID
