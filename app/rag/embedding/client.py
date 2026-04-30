@@ -20,9 +20,14 @@ class RemoteEmbedder:
             "config": self.config.model_dump()
         }
         
+        headers = {
+            "X-API-Key": settings.EMBEDDING_SERVICE_API_KEY,
+            "Authorization": f"Bearer {settings.EMBEDDING_SERVICE_API_KEY}"
+        }
+        
         try:
             with httpx.Client() as client:
-                response = client.post(f"{self.service_url}/embed", json=payload, timeout=60.0)
+                response = client.post(f"{self.service_url}/embed", json=payload, headers=headers, timeout=60.0)
                 response.raise_for_status()
                 return response.json()['embeddings']
         except Exception as e:

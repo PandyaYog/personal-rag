@@ -235,9 +235,11 @@ def store_summary_in_qdrant(
             "chunk_count": chunk_count,
         }
 
-        # Build the point with a deterministic-ish UUID
+        # Build the point using the document's exact UUID.
+        # Since there is a 1:1 relationship between a document and its summary,
+        # using the doc_id as the point ID guarantees idempotency and faster updates.
         point = qdrant_models.PointStruct(
-            id=str(uuid.uuid4()),
+            id=str(doc.id),
             vector={"dense": dense_vector},
             payload=payload
         )
@@ -277,9 +279,6 @@ def generate_and_store_summary(
         but without a summary. The error is logged for debugging.
     """
     try:
-        # Delete any existing summary for this doc (handles reprocessing)
-        qdrant_service.delete_summary_by_doc_id(str(doc.id))
-
         # Generate the summary
         summary_text, method = generate_document_summary(full_text, doc.name)
         logger.info(

@@ -2,27 +2,21 @@ import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    # --- PostgreSQL Configuration ---
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
+    # --- PostgreSQL Configuration (Neon) ---
     DATABASE_URL: str
 
-    # --- Minio Configuration ---
-    MINIO_ROOT_USER: str
-    MINIO_ROOT_PASSWORD: str
-    MINIO_BUCKET_NAME: str
-    MINIO_ENDPOINT: str
-    MINIO_ACCESS_KEY: str
-    MINIO_SECRET_KEY: str
+    # --- Storage Configuration (Cloudflare R2) ---
+    R2_ENDPOINT: str
+    R2_ACCESS_KEY: str
+    R2_SECRET_KEY: str
+    R2_BUCKET_NAME: str
 
-    # --- Redis Configuration ---
-    REDIS_HOST: str
-    REDIS_PORT: int
+    # --- Redis Configuration (Upstash) ---
+    REDIS_URL: str
 
-    # --- Qdrant Configuration ---
-    QDRANT_HOST: str
-    QDRANT_PORT: int
+    # --- Qdrant Configuration (Qdrant Cloud) ---
+    QDRANT_URL: str
+    QDRANT_API_KEY: str
 
     # --- FastAPI Application ---
     APP_SECRET_KEY: str
@@ -33,8 +27,9 @@ class Settings(BaseSettings):
     # --- LLM Provider (Groq) ---
     GROQ_API_KEY: str
 
-    # --- Embedding Service ---
-    EMBEDDING_SERVICE_URL: str = "http://embedding_service:8000"
+    # --- Embedding Service (Hugging Face Space) ---
+    EMBEDDING_SERVICE_URL: str
+    EMBEDDING_SERVICE_API_KEY: str
 
     # --- Email Configuration (fastapi-mail) ---
     MAIL_USERNAME: str = ""

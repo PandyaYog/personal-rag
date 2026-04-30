@@ -5,25 +5,24 @@ from app.core.config import settings
 class MinioClient:
     def __init__(self):
         self.client = Minio(
-            endpoint=settings.MINIO_ENDPOINT,
-            access_key=settings.MINIO_ACCESS_KEY,
-            secret_key=settings.MINIO_SECRET_KEY,
-            secure=False  
+            endpoint=settings.R2_ENDPOINT,
+            access_key=settings.R2_ACCESS_KEY,
+            secret_key=settings.R2_SECRET_KEY,
+            secure=True  # R2 requires HTTPS
         )
-        self.bucket_name = settings.MINIO_BUCKET_NAME
+        self.bucket_name = settings.R2_BUCKET_NAME
         self._ensure_bucket_exists()
 
     def _ensure_bucket_exists(self):
-        """Ensures the configured bucket exists."""
+        """Verifies the configured bucket exists in Cloudflare R2."""
         try:
             found = self.client.bucket_exists(self.bucket_name)
             if not found:
-                self.client.make_bucket(self.bucket_name)
-                print(f"Bucket '{self.bucket_name}' created.")
+                print(f"WARNING: Bucket '{self.bucket_name}' not found in R2. Please create it in the Cloudflare Dashboard.")
             else:
-                print(f"Bucket '{self.bucket_name}' already exists.")
+                print(f"Bucket '{self.bucket_name}' connection verified in R2.")
         except S3Error as exc:
-            print("Error occurred during Minio initialization", exc)
+            print("Error occurred during R2 Minio initialization", exc)
             raise
 
     def upload_file(self, file_path_in_minio: str, file_data, file_size: int, content_type: str):

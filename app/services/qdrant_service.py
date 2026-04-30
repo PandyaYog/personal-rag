@@ -1,4 +1,5 @@
 from qdrant_client import QdrantClient, models
+from qdrant_client.http.exceptions import UnexpectedResponse
 from app.core.config import settings
 from typing import List, Optional
 
@@ -10,9 +11,14 @@ SUMMARY_COLLECTION_NAME = "document_summaries"
 
 class QdrantService:
     def __init__(self):
-        self.client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT, timeout=180.0)
+        self.client = QdrantClient(
+            url=settings.QDRANT_URL,
+            api_key=settings.QDRANT_API_KEY,
+            timeout=180.0
+        )
         self._ensure_collection_exists()
         self._ensure_summary_collection_exists()
+        self._ensure_payload_indexes()
 
     # ─── Collection Initialization ────────────────────────────────────────────
 
@@ -24,8 +30,15 @@ class QdrantService:
         try:
             self.client.get_collection(collection_name=QDRANT_COLLECTION_NAME)
             print(f"Collection '{QDRANT_COLLECTION_NAME}' already exists.")
+            return
+        except UnexpectedResponse as e:
+            if e.status_code != 404:
+                raise
+            print(f"Collection '{QDRANT_COLLECTION_NAME}' not found. Creating...")
         except Exception:
             print(f"Collection '{QDRANT_COLLECTION_NAME}' not found. Creating...")
+
+        try:
             self.client.create_collection(
                 collection_name=QDRANT_COLLECTION_NAME,
                 vectors_config={
@@ -61,6 +74,51 @@ class QdrantService:
                 ),
             )
             print("Collection created successfully with dense, sparse, and multi-vector configs.")
+        except UnexpectedResponse as e:
+            if e.status_code == 409:
+                print(f"Collection '{QDRANT_COLLECTION_NAME}' was created by another worker. Skipping.")
+            else:
+                raise
+
+    def _ensure_payload_indexes(self):
+        """
+        Creates payload indexes required by Qdrant Cloud for filtered queries.
+        """
+        chunk_index_fields = {
+            "doc_id": models.PayloadSchemaType.KEYWORD,
+            "kb_id": models.PayloadSchemaType.KEYWORD,
+            "user_id": models.PayloadSchemaType.KEYWORD,
+        }
+        for field_name, field_type in chunk_index_fields.items():
+            try:
+                self.client.create_payload_index(
+                    collection_name=QDRANT_COLLECTION_NAME,
+                    field_name=field_name,
+                    field_schema=field_type,
+                )
+            except UnexpectedResponse as e:
+                if e.status_code != 409:
+                    print(f"WARNING: Failed to create index '{field_name}': {e}")
+            except Exception as e:
+                print(f"WARNING: Failed to create index '{field_name}': {e}")
+
+        summary_index_fields = {
+            "doc_id": models.PayloadSchemaType.KEYWORD,
+            "kb_id": models.PayloadSchemaType.KEYWORD,
+            "user_id": models.PayloadSchemaType.KEYWORD,
+        }
+        for field_name, field_type in summary_index_fields.items():
+            try:
+                self.client.create_payload_index(
+                    collection_name=SUMMARY_COLLECTION_NAME,
+                    field_name=field_name,
+                    field_schema=field_type,
+                )
+            except UnexpectedResponse as e:
+                if e.status_code != 409:
+                    print(f"WARNING: Failed to create index '{field_name}': {e}")
+            except Exception as e:
+                print(f"WARNING: Failed to create index '{field_name}': {e}")
 
     def _ensure_summary_collection_exists(self):
         """
@@ -71,10 +129,16 @@ class QdrantService:
         try:
             self.client.get_collection(collection_name=SUMMARY_COLLECTION_NAME)
             print(f"Summary collection '{SUMMARY_COLLECTION_NAME}' already exists.")
+            return
+        except UnexpectedResponse as e:
+            if e.status_code != 404:
+                raise
+            print(f"Summary collection '{SUMMARY_COLLECTION_NAME}' not found. Creating...")
         except Exception:
             print(f"Summary collection '{SUMMARY_COLLECTION_NAME}' not found. Creating...")
-            try:
-                self.client.create_collection(
+
+        try:
+            self.client.create_collection(
                     collection_name=SUMMARY_COLLECTION_NAME,
                     vectors_config={
                         "dense": models.VectorParams(
@@ -82,15 +146,21 @@ class QdrantService:
                             distance=models.Distance.COSINE
                         ),
                     },
-                    hnsw_config=models.HnswConfigDiff(
-                        m=16,
-                        ef_construct=100,
-                    ),
-                )
-                print(f"Summary collection '{SUMMARY_COLLECTION_NAME}' created successfully.")
-            except Exception as e:
+                hnsw_config=models.HnswConfigDiff(
+                    m=16,
+                    ef_construct=100,
+                ),
+            )
+            print(f"Summary collection '{SUMMARY_COLLECTION_NAME}' created successfully.")
+        except UnexpectedResponse as e:
+            if e.status_code == 409:
+                print(f"Summary collection '{SUMMARY_COLLECTION_NAME}' was created by another worker. Skipping.")
+            else:
                 print(f"ERROR: Failed to create summary collection: {e}")
                 raise
+        except Exception as e:
+            print(f"ERROR: Failed to create summary collection: {e}")
+            raise
 
     # ─── Chunk Collection Operations ──────────────────────────────────────────
 
