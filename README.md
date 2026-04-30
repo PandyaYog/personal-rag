@@ -106,6 +106,7 @@ cp .env.example .env
 ```
 *   Update `GROQ_API_KEY` in `.env`.
 *   Update `MAIL_USERNAME` and `MAIL_PASSWORD` for email features.
+*   Make sure to fill in all the cloud infrastructure credentials (`DATABASE_URL`, `QDRANT_API_KEY`, `R2_SECRET_KEY`, `REDIS_URL`, etc).
 
 **Frontend:**
 ```bash
@@ -114,14 +115,24 @@ cp .env.example .env
 cd ..
 ```
 
-### 3. Start the Backend (Docker Compose)
-The entire backend stack (Postgres, Qdrant, Redis, MinIO, Celery, and the FastAPI app) starts with one command:
-```bash
-docker-compose up -d --build
-```
-*Note: The first run will take time as it downloads embedding models and builds containers.*
+### 3. Branching Strategy & Deployment Modes
 
-### 4. Start the Frontend
+This repository maintains two separate branches for different deployment needs:
+
+- **`master` Branch (Local Development):** 
+  Contains the fully local, offline-capable setup. All infrastructure (Postgres, Qdrant, Redis, MinIO, Embedding Service) runs entirely locally via a massive `docker-compose.yml` file. This is best for zero-cost local development.
+- **`hosting` Branch (Cloud Production):** 
+  Contains the production-ready, highly decoupled setup. Infrastructure is offloaded to managed cloud providers (Neon, Qdrant Cloud, Upstash, Cloudflare R2). Heavy embedding workloads are offloaded to Hugging Face Spaces. The backend runs via `supervisord` to efficiently manage FastAPI and Celery. 
+
+### 4. Start the Application
+
+**Backend (on `hosting` branch):**
+The `hosting` branch relies entirely on cloud services. To start the local FastAPI server and Celery worker connected to your cloud providers:
+```bash
+docker-compose up -d --build --remove-orphans
+```
+
+**Frontend:**
 In a new terminal:
 ```bash
 cd frontend
