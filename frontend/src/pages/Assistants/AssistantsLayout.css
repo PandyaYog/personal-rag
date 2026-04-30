@@ -1,0 +1,361 @@
+/* ============================================================
+   ASSISTANTS MASTER-DETAIL LAYOUT
+   Dark Theme Aesthetic with Glassmorphism
+   ============================================================ */
+
+.assistants-page {
+  position: relative;
+  height: calc(100vh - 64px); /* Assuming 64px is the top navbar/header height if any */
+  width: 100%;
+  background: var(--background-color, #0f172a);
+  color: var(--text-primary, #f8fafc);
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Animated Background ── */
+.ast-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ast-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.3;
+  animation: astFloat 20s ease-in-out infinite alternate;
+}
+
+.ast-orb-1 {
+  top: -10%;
+  left: -5%;
+  width: 500px;
+  height: 500px;
+  background: rgba(168, 85, 247, 0.4); /* Purple */
+}
+
+.ast-orb-2 {
+  bottom: -20%;
+  right: -10%;
+  width: 600px;
+  height: 600px;
+  background: rgba(99, 102, 241, 0.3); /* Indigo */
+  animation-delay: -5s;
+}
+
+@keyframes astFloat {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 50px) scale(1.05); }
+  100% { transform: translate(-40px, -20px) scale(0.95); }
+}
+
+.ast-grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.6;
+}
+
+/* ── Split Layout Container ── */
+.ast-split-layout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  height: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Left Panel (Sidebar) ── */
+.ast-left-panel {
+  flex: 0 0 320px;
+  background: var(--surface-color, rgba(30, 41, 59, 0.7));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ast-sidebar-header {
+  padding: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.ast-sidebar-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.ast-new-btn {
+  background: var(--primary-color, #6366f1);
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s;
+}
+
+.ast-new-btn:hover {
+  background: var(--primary-hover, #4f46e5);
+  transform: translateY(-1px);
+}
+
+.ast-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Assistant Accordion Items */
+.ast-accordion-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.ast-accordion-item:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.ast-accordion-header {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  color: var(--text-primary, #f8fafc);
+  text-align: left;
+}
+
+.ast-accordion-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ast-accordion-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.ast-accordion-icon {
+  color: var(--primary-color, #818cf8);
+}
+
+.ast-accordion-content {
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ast-chat-link {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  color: var(--text-secondary, #94a3b8);
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ast-chat-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #f8fafc);
+}
+
+.ast-chat-link.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  font-weight: 500;
+}
+
+.ast-new-chat-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: var(--text-secondary, #94a3b8);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  margin-top: 0.25rem;
+}
+
+.ast-new-chat-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: var(--text-primary, #f8fafc);
+}
+
+.ast-assistant-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.ast-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #64748b);
+  padding: 0.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ast-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #f8fafc);
+}
+
+.ast-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--text-muted, #64748b);
+  gap: 1rem;
+}
+
+.ast-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(99, 102, 241, 0.2);
+  border-top-color: var(--primary-color, #6366f1);
+  border-radius: 50%;
+  animation: astSpin 1s linear infinite;
+}
+
+@keyframes astSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Right Panel (Main Content) ── */
+.ast-right-panel {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface-color, rgba(30, 41, 59, 0.7));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.ast-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted, #64748b);
+  text-align: center;
+  padding: 2rem;
+}
+
+.ast-empty-state svg {
+  opacity: 0.5;
+  margin-bottom: 1.5rem;
+}
+
+.ast-empty-state h3 {
+  color: var(--text-primary, #f8fafc);
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.ast-empty-state p {
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+/* ── Responsive Layout Breakpoints ── */
+@media (max-width: 1024px) {
+  .ast-split-layout {
+    gap: 1rem;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .ast-split-layout {
+    padding: 0.5rem;
+    height: 100%;
+    gap: 0;
+  }
+
+  /* When on root (/assistants), hide right panel */
+  .ast-split-layout.is-root .ast-right-panel {
+    display: none;
+  }
+  .ast-split-layout.is-root .ast-left-panel {
+    flex: 1;
+    height: 100%;
+    max-height: none;
+    border-radius: 12px;
+  }
+
+  /* When on detail (/create or /chat), hide left panel */
+  .ast-split-layout.is-detail .ast-left-panel {
+    display: none;
+  }
+  .ast-split-layout.is-detail .ast-right-panel {
+    flex: 1;
+    height: 100%;
+    border-radius: 12px;
+  }
+}

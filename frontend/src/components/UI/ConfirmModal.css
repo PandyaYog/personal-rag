@@ -1,0 +1,146 @@
+/* ============================================================
+   CONFIRM MODAL — Dark-themed alert dialog
+   ============================================================ */
+
+.cm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    padding: 1rem;
+    animation: cmFadeIn 0.15s ease-out;
+}
+
+@keyframes cmFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.cm-dialog {
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface-color, #111111);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.07));
+    border-radius: var(--radius-lg, 16px);
+    padding: 2rem 1.75rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: cmSlideUp 0.2s ease-out;
+}
+
+@keyframes cmSlideUp {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cm-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.cm-icon-danger {
+    background: rgba(248, 113, 113, 0.12);
+    color: #f87171;
+}
+
+.cm-icon-default {
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--accent-1, #6366f1);
+}
+
+.cm-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary, #f0f0f0);
+    margin-bottom: 0.4rem;
+}
+
+.cm-message {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #888888);
+    line-height: 1.55;
+    margin-bottom: 1.5rem;
+}
+
+.cm-actions {
+    display: flex;
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.cm-btn {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius-md, 10px);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.cm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cm-btn-cancel {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-secondary, #888888);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.07));
+}
+
+.cm-btn-cancel:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary, #f0f0f0);
+}
+
+.cm-btn-confirm.cm-btn-danger {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.cm-btn-confirm.cm-btn-danger:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.25);
+    box-shadow: 0 0 12px rgba(248, 113, 113, 0.2);
+}
+
+.cm-btn-confirm.cm-btn-default {
+    background: linear-gradient(135deg, var(--accent-1, #6366f1), var(--accent-2, #a855f7));
+    color: #fff;
+}
+
+.cm-btn-confirm.cm-btn-default:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--glow-sm, 0 0 12px rgba(99, 102, 241, 0.45));
+}
+
+.cm-btn:focus-visible {
+    outline: 2px solid var(--accent-1, #6366f1);
+    outline-offset: 2px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+    .cm-dialog {
+        padding: 1.5rem 1.25rem 1.25rem;
+    }
+
+    .cm-actions {
+        flex-direction: column;
+    }
+}

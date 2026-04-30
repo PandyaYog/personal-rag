@@ -1,0 +1,236 @@
+/* ============================================================
+   SIDEBAR — Dark-themed navigation shell
+   ============================================================ */
+
+/* ── Mobile overlay ── */
+.sb-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 90;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.sb-overlay-visible {
+    opacity: 1;
+}
+
+/* ── Sidebar container ── */
+.sb-sidebar {
+    width: 260px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-color);
+    border-right: 1px solid var(--border-color);
+    flex-shrink: 0;
+    z-index: 100;
+    overflow: hidden;
+}
+
+/* ── Header with logo ── */
+.sb-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sb-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.sb-logo:hover {
+    opacity: 0.85;
+}
+
+.sb-logo-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+    flex-shrink: 0;
+}
+
+.sb-logo-text {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+}
+
+.sb-logo-text span {
+    background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Close button — hidden on desktop */
+.sb-close-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    transition: color 0.2s, background 0.2s;
+}
+
+.sb-close-btn:hover {
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Navigation links ── */
+.sb-nav {
+    flex: 1;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow-y: auto;
+}
+
+.sb-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: var(--radius-md, 10px);
+    font-size: 0.88rem;
+    font-weight: 500;
+    border: none;
+    background: none;
+    width: 100%;
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+    white-space: nowrap;
+}
+
+.sb-nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.sb-nav-item.sb-active {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--accent-1);
+}
+
+.sb-nav-item.sb-active svg {
+    color: var(--accent-1);
+}
+
+.sb-nav-item:focus-visible {
+    outline: 2px solid var(--accent-1, #6366f1);
+    outline-offset: -2px;
+}
+
+/* ── Footer — profile + logout ── */
+.sb-footer {
+    padding: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sb-profile-item {
+    gap: 0.65rem;
+    padding: 0.6rem 0.85rem;
+}
+
+.sb-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.sb-profile-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sb-profile-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sb-profile-email {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Logout button ── */
+.sb-logout-btn {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+}
+
+.sb-logout-btn:hover {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.08);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+    .sb-overlay {
+        display: block;
+        pointer-events: none;
+    }
+
+    .sb-overlay-visible {
+        pointer-events: auto;
+    }
+
+    .sb-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .sb-sidebar.sb-open {
+        transform: translateX(0);
+    }
+
+    .sb-close-btn {
+        display: flex;
+    }
+}

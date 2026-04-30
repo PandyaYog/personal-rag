@@ -1,0 +1,967 @@
+/* ============================================================
+   SIGNUP PAGE — Step 2: Layout & Animated Background
+   All colours come from [data-theme="dark"] tokens in index.css
+   ============================================================ */
+
+/* ── Outer wrapper ── */
+.signup-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Animated background layer ── */
+.signup-bg {
+  position: fixed;    /* fixed so it doesn't scroll with the form */
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Gradient orbs — same language as the home hero */
+.su-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+}
+
+.su-orb-1 {
+  width: 560px;
+  height: 560px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.45) 0%, transparent 70%);
+  top: -15%;
+  right: -8%;
+  animation: suOrb1 16s ease-in-out infinite;
+}
+
+.su-orb-2 {
+  width: 440px;
+  height: 440px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.35) 0%, transparent 70%);
+  bottom: -10%;
+  left: -5%;
+  animation: suOrb2 20s ease-in-out infinite;
+}
+
+.su-orb-3 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%);
+  top: 45%;
+  left: 38%;
+  animation: suOrb3 24s ease-in-out infinite;
+}
+
+@keyframes suOrb1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40%       { transform: translate(-40px, 50px) scale(1.1); }
+  70%       { transform: translate(20px, -30px) scale(0.95); }
+}
+@keyframes suOrb2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(50px, -40px) scale(1.08); }
+}
+@keyframes suOrb3 {
+  0%, 100% { transform: translate(0, 0); }
+  50%       { transform: translate(-30px, 40px); }
+}
+
+/* Dot-grid overlay (same as home) */
+.su-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image:
+    radial-gradient(ellipse 85% 85% at 50% 50%, black 40%, transparent 100%);
+  -webkit-mask-image:
+    radial-gradient(ellipse 85% 85% at 50% 50%, black 40%, transparent 100%);
+}
+
+/* ── Two-column inner shell ── */
+.signup-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+/* ── LEFT PANEL ── */
+.signup-left {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 3rem;
+  background: rgba(8, 8, 8, 0.4);
+  border-right: 1px solid var(--border-color);
+}
+
+/* Subtle vertical gradient to separate from bg */
+.signup-left::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    160deg,
+    rgba(99, 102, 241, 0.06) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.left-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Logo */
+.su-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.su-logo-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--glow-sm);
+  flex-shrink: 0;
+}
+
+.su-logo-text {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.su-logo-text span {
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Left panel branding content */
+.left-branding {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3.5rem;
+}
+
+/* Headline */
+.brand-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  text-align: center;
+}
+
+.brand-title {
+  font-size: clamp(1.6rem, 2.5vw, 2.2rem);
+  font-weight: 900;
+  letter-spacing: -1.2px;
+  line-height: 1.15;
+  color: var(--text-primary);
+}
+
+.brand-gradient {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2), var(--accent-3));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: brandShimmer 5s linear infinite;
+}
+
+@keyframes brandShimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* ── Knowledge network animation ── */
+.kn-scene {
+  position: relative;
+  width: min(420px, 80%);
+  aspect-ratio: 1;
+  flex-shrink: 0;
+}
+
+/* SVG connection lines */
+.kn-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.kn-line {
+  stroke: rgba(99, 102, 241, 0.15);
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+  animation: knLinePulse 4s ease-in-out infinite;
+}
+
+.kn-line-1 { animation-delay: 0s; }
+.kn-line-2 { animation-delay: 0.6s; }
+.kn-line-3 { animation-delay: 1.2s; }
+.kn-line-4 { animation-delay: 1.8s; }
+.kn-line-5 { animation-delay: 0.3s; }
+.kn-line-6 { animation-delay: 1.5s; }
+.kn-line-x1,
+.kn-line-x2,
+.kn-line-x3 {
+  stroke: rgba(168, 85, 247, 0.08);
+  stroke-width: 0.75;
+  stroke-dasharray: 4 6;
+  animation-delay: 2s;
+}
+
+@keyframes knLinePulse {
+  0%, 100% { stroke-opacity: 0.4; }
+  50%      { stroke-opacity: 1; }
+}
+
+/* Central hub */
+.kn-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 0 30px rgba(99, 102, 241, 0.4),
+    0 0 60px rgba(99, 102, 241, 0.15);
+  animation: knHubPulse 3s ease-in-out infinite;
+  z-index: 2;
+}
+
+@keyframes knHubPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 30px rgba(99, 102, 241, 0.4),
+      0 0 60px rgba(99, 102, 241, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 40px rgba(99, 102, 241, 0.6),
+      0 0 80px rgba(99, 102, 241, 0.25);
+  }
+}
+
+/* Document nodes */
+.kn-node {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  z-index: 1;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.kn-node-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Position each node to match SVG line endpoints (centered on the coordinate) */
+.kn-node-1 { top: calc(80 / 400 * 100% - 27px);  left: calc(85  / 400 * 100% - 27px); animation: knFloat1 6s ease-in-out infinite; }
+.kn-node-2 { top: calc(95 / 400 * 100% - 27px);  left: calc(330 / 400 * 100% - 27px); animation: knFloat2 7s ease-in-out infinite; }
+.kn-node-3 { top: calc(260 / 400 * 100% - 27px); left: calc(60  / 400 * 100% - 27px); animation: knFloat3 8s ease-in-out infinite; }
+.kn-node-4 { top: calc(310 / 400 * 100% - 27px); left: calc(320 / 400 * 100% - 27px); animation: knFloat4 7s ease-in-out infinite; }
+.kn-node-5 { top: calc(50  / 400 * 100% - 27px); left: calc(200 / 400 * 100% - 27px); animation: knFloat5 6.5s ease-in-out infinite; }
+.kn-node-6 { top: calc(340 / 400 * 100% - 27px); left: calc(110 / 400 * 100% - 27px); animation: knFloat6 7.5s ease-in-out infinite; }
+
+/* Gentle floating */
+@keyframes knFloat1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-4px, 6px); } }
+@keyframes knFloat2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(5px, -4px); } }
+@keyframes knFloat3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-6px, -5px); } }
+@keyframes knFloat4 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(4px, 5px); } }
+@keyframes knFloat5 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(5px, 4px); } }
+@keyframes knFloat6 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-5px, 3px); } }
+
+/* Colour accents per node on hover-like periodic highlight */
+.kn-node-1 { animation: knFloat1 6s ease-in-out infinite, knGlowIndigo 8s ease-in-out infinite; }
+.kn-node-2 { animation: knFloat2 7s ease-in-out infinite, knGlowViolet 9s ease-in-out infinite 1s; }
+.kn-node-3 { animation: knFloat3 8s ease-in-out infinite, knGlowCyan 10s ease-in-out infinite 2s; }
+.kn-node-4 { animation: knFloat4 7s ease-in-out infinite, knGlowIndigo 9s ease-in-out infinite 3s; }
+.kn-node-5 { animation: knFloat5 6.5s ease-in-out infinite, knGlowViolet 8s ease-in-out infinite 0.5s; }
+.kn-node-6 { animation: knFloat6 7.5s ease-in-out infinite, knGlowCyan 9s ease-in-out infinite 1.5s; }
+
+@keyframes knGlowIndigo {
+  0%, 80%, 100% { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+  90%           { border-color: rgba(99,102,241,0.5);   background: rgba(99,102,241,0.08); }
+}
+@keyframes knGlowViolet {
+  0%, 80%, 100% { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+  90%           { border-color: rgba(168,85,247,0.5);   background: rgba(168,85,247,0.08); }
+}
+@keyframes knGlowCyan {
+  0%, 80%, 100% { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+  90%           { border-color: rgba(6,182,212,0.5);    background: rgba(6,182,212,0.08); }
+}
+
+/* Data pulse particles — small dots that travel from nodes to hub */
+.kn-pulse {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  z-index: 3;
+  opacity: 0;
+}
+
+.kn-pulse-1 {
+  background: #818cf8;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.8);
+  animation: knPulse1 4s ease-in-out infinite;
+}
+
+.kn-pulse-2 {
+  background: #c084fc;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.8);
+  animation: knPulse2 5s ease-in-out infinite 1.5s;
+}
+
+.kn-pulse-3 {
+  background: #22d3ee;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+  animation: knPulse3 4.5s ease-in-out infinite 3s;
+}
+
+/* Pulse keyframes: travel from node position to center (200,200 = 50%) */
+@keyframes knPulse1 {
+  0%   { top: 20%;  left: 21.25%; opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { top: calc(50% - 3px); left: calc(50% - 3px); opacity: 1; }
+  60%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes knPulse2 {
+  0%   { top: 23.75%; left: 82.5%; opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { top: calc(50% - 3px); left: calc(50% - 3px); opacity: 1; }
+  60%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+@keyframes knPulse3 {
+  0%   { top: 65%;  left: 15%; opacity: 0; }
+  10%  { opacity: 1; }
+  50%  { top: calc(50% - 3px); left: calc(50% - 3px); opacity: 1; }
+  60%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ── RIGHT PANEL — form ── */
+.signup-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  overflow-y: auto;
+}
+
+.signup-form-container {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Form header */
+.su-form-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.su-form-title {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: var(--text-primary);
+}
+
+.su-form-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* Global error banner */
+.su-error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md, 10px);
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #f87171;
+  font-size: 0.875rem;
+}
+
+.su-error:focus {
+  outline: none;
+}
+
+/* Individual field */
+.su-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.su-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.su-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.2px;
+}
+
+.su-required {
+  color: var(--accent-1, #6366f1);
+  margin-left: 2px;
+}
+
+/* Input wrapper */
+.su-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.su-input-icon {
+  position: absolute;
+  left: 0.9rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.su-input-wrap input {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.7rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.925rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.su-input-wrap input::placeholder {
+  color: var(--text-muted);
+}
+
+.su-input-wrap input:focus {
+  border-color: var(--accent-1, #6366f1);
+  background: rgba(99, 102, 241, 0.05);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ── STEP 4: Field validation states ── */
+
+/* Add right-side padding when a status icon is present */
+.su-state-valid input,
+.su-state-invalid input {
+  padding-right: 2.7rem;
+}
+
+/* Valid state — green border */
+.su-state-valid input {
+  border-color: rgba(16, 185, 129, 0.6);
+}
+.su-state-valid input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.04);
+}
+
+/* Invalid state — rose border */
+.su-state-invalid input {
+  border-color: rgba(248, 113, 113, 0.6);
+}
+.su-state-invalid input:focus {
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15);
+  background: rgba(248, 113, 113, 0.04);
+}
+
+/* Right-side status icon */
+.su-field-status {
+  position: absolute;
+  right: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: statusPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes statusPop {
+  from { transform: scale(0); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.status-valid {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.status-invalid {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+/* Helper text below fields */
+.su-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  padding-left: 0.2rem;
+  transition: color 0.2s;
+}
+
+.su-hint-error {
+  color: #f87171;
+}
+
+/* Valid hint — green "looks good" state */
+.su-hint-ok {
+  color: #10b981;
+}
+
+/* ── STEP 5: Username hint row + char counter ── */
+.su-hint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Character counter */
+.su-char-count {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.2s;
+}
+
+.su-char-count.char-warn {
+  color: #f59e0b; /* amber when approaching limit */
+}
+
+.su-char-count.char-over {
+  color: #f87171; /* red when over */
+  font-weight: 700;
+}
+
+/* ── STEP 6: Password eye toggle + strength meter ── */
+
+/* Extra right padding so text doesn't hide under the eye icon */
+.pw-field input {
+  padding-right: 2.9rem;
+}
+
+/* Show/hide toggle button */
+.pw-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s, background 0.2s;
+}
+
+.pw-toggle-btn:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Strength meter row */
+.pw-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-top: 0.1rem;
+}
+
+/* 4 bar segments */
+.pw-bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.pw-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 99px;
+}
+
+/* Strength label */
+.pw-strength-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  min-width: 68px;
+  text-align: right;
+  transition: color 0.3s;
+}
+
+
+
+/* ── Focus-visible overrides for interactive elements ── */
+.su-input-wrap input:focus-visible {
+  outline: none;
+  border-color: var(--accent-1, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+.su-state-valid input:focus-visible {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+}
+
+.su-state-invalid input:focus-visible {
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.25);
+}
+
+.pw-toggle-btn:focus-visible {
+  outline: 2px solid var(--accent-1, #6366f1);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Submit button */
+.su-submit-btn {
+  width: 100%;
+  padding: 0.9rem;
+  margin-top: 0.5rem;
+  border-radius: var(--radius-md, 10px);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent-1, #6366f1), var(--accent-2, #a855f7));
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  box-shadow: var(--glow-sm, 0 0 12px rgba(99,102,241,0.45));
+}
+
+.su-submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-md, 0 0 30px rgba(99,102,241,0.35));
+}
+
+.su-submit-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.su-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Loading spinner */
+.su-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: suSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes suSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Footer link */
+.su-footer {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.su-footer a {
+  color: var(--accent-1, #6366f1);
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+.su-footer a:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+.su-footer a:focus-visible {
+  outline: 2px solid var(--accent-1, #6366f1);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Responsive ── */
+
+/* Tablet: stack panels */
+@media (max-width: 900px) {
+  .signup-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .signup-left {
+    display: none; /* hidden on mobile, shown on desktop */
+  }
+
+  .signup-right {
+    min-height: 100vh;
+  }
+}
+
+/* Mobile: tighter padding */
+@media (max-width: 480px) {
+  .signup-right {
+    padding: 2rem 1.25rem;
+    align-items: flex-start;
+    padding-top: 3rem;
+  }
+
+  .signup-form-container {
+    max-width: 100%;
+  }
+
+  .su-form-title {
+    font-size: 1.65rem;
+  }
+
+  .success-card {
+    padding: 2.25rem 1.5rem;
+    border-radius: 20px;
+  }
+
+  .success-title {
+    font-size: 1.4rem;
+  }
+
+  .success-icon-wrap {
+    width: 68px;
+    height: 68px;
+  }
+
+  .success-icon {
+    font-size: 1.9rem;
+  }
+}
+
+/* Extra-small screens */
+@media (max-width: 360px) {
+  .signup-right {
+    padding: 1.5rem 1rem;
+    padding-top: 2.5rem;
+  }
+
+  .su-form-title {
+    font-size: 1.45rem;
+  }
+
+  .su-submit-btn {
+    padding: 0.8rem;
+    font-size: 0.925rem;
+  }
+
+  .su-input-wrap input {
+    font-size: 0.875rem;
+    padding: 0.7rem 0.9rem 0.7rem 2.5rem;
+  }
+}
+
+/* ============================================================
+   STEPS 7 + 8 — Backend error mapping + Success screen
+   ============================================================ */
+
+.success-screen {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.success-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  padding: 3rem 2.5rem;
+  max-width: 440px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  animation: successCardIn 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes successCardIn {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* Envelope with pulsing glow ring */
+.success-icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: successRing 2.4s ease-in-out infinite;
+}
+
+@keyframes successRing {
+  0%, 100% { box-shadow: 0 0 0  0px rgba(99,102,241,0.3); }
+  50%       { box-shadow: 0 0 0 12px rgba(99,102,241,0);   }
+}
+
+.success-icon { font-size: 2.25rem; line-height: 1; }
+
+.success-title {
+  font-size: 1.65rem;
+  font-weight: 900;
+  letter-spacing: -0.8px;
+  color: var(--text-primary);
+}
+
+.success-body {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 340px;
+}
+
+.success-email {
+  color: var(--text-primary);
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.success-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.55rem 0.9rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.success-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-decoration: none;
+  margin-top: 0.25rem;
+}
+
+.success-resend-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0.25rem;
+}
+
+.success-resend-btn:hover {
+  color: var(--text-secondary);
+}
+.success-resend-btn:focus-visible {
+  outline: 2px solid var(--accent-1, #6366f1);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.success-login-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Focus-visible outline suppression on heading (used for programmatic focus) */
+.success-title:focus {
+  outline: none;
+}

@@ -1,0 +1,77 @@
+/* ============================================================
+   LAYOUT — Dark-themed shell (sidebar + main area)
+   ============================================================ */
+
+.layout {
+    display: flex;
+    height: 100vh;
+    background-color: var(--background-color);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    overflow: hidden;
+}
+
+/* ── Main area (topbar + content) ── */
+.layout-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* ── Top bar — only visible on mobile for hamburger ── */
+.layout-topbar {
+    display: none;
+}
+
+.layout-hamburger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md, 10px);
+    color: var(--text-secondary);
+    transition: color 0.2s, background 0.2s;
+}
+
+.layout-hamburger:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.layout-hamburger:focus-visible {
+    outline: 2px solid var(--accent-1, #6366f1);
+    outline-offset: 2px;
+}
+
+/* ── Main content area ── */
+.main-content {
+    flex: 1;
+    padding: 2.5rem 2.5rem 2rem;
+    overflow-y: auto;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+    .layout-topbar {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--surface-color);
+        flex-shrink: 0;
+    }
+
+    .main-content {
+        padding: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-content {
+        padding: 1rem;
+    }
+}

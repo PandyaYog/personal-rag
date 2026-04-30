@@ -1,0 +1,113 @@
+.custom-select {
+    position: relative;
+    width: 100%;
+}
+
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 10px);
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    text-align: left;
+}
+
+.custom-select-trigger:focus-visible,
+.custom-select-trigger.open {
+    border-color: var(--accent-1, #6366f1);
+    background: rgba(99, 102, 241, 0.05);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.custom-select-placeholder {
+    color: var(--text-muted);
+}
+
+.custom-select-chevron {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+
+.custom-select-chevron.rotated {
+    transform: rotate(180deg);
+}
+
+.custom-select-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    background: var(--surface-2-color, #181818);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 10px);
+    padding: 0.35rem 0;
+    margin: 0;
+    list-style: none;
+    z-index: 50;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.custom-select-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-select-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-select-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.custom-select-group {
+    padding: 0.5rem 1rem 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: default;
+}
+
+.custom-select-option {
+    padding: 0.55rem 1rem;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+}
+
+.custom-select-option.focused {
+    background: rgba(99, 102, 241, 0.12);
+    color: var(--text-primary);
+}
+
+.custom-select-option.selected {
+    color: var(--accent-1, #6366f1);
+    font-weight: 600;
+}
+
+.custom-select-option.selected.focused {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+@media (max-width: 480px) {
+    .custom-select-trigger {
+        min-height: 44px;
+        padding-top: 0.85rem;
+        padding-bottom: 0.85rem;
+    }
+}
