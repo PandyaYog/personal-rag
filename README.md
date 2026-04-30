@@ -1,4 +1,13 @@
-# Personal RAG System (Built from Scratch)
+---
+title: Personal RAG Backend
+emoji: 🧠
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
+# 🧠 RAG from Scratch - Backend System
 
 **A transparent, educational implementation of Retrieval-Augmented Generation without the "magic" of heavy frameworks.**
 
