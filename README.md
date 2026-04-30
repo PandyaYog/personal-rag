@@ -88,8 +88,8 @@ graph TD
 ## ⚙️ Setup & Installation
 
 ### Prerequisites
-*   Python 3.10+
 *   Docker & Docker Compose
+*   Node.js (for Frontend)
 
 ### 1. Clone the Repository
 ```bash
@@ -98,42 +98,43 @@ cd personal-rag-system
 ```
 
 ### 2. Environment Configuration
-Create a `.env` file in the root directory. You can use the provided example as a template:
+Create a `.env` file in both the root directory and the frontend directory. Use the provided examples:
+
+**Backend:**
 ```bash
 cp .env.example .env
 ```
-**Important:** You will need a [Groq API Key](https://console.groq.com/) to run the LLM. Add it to your `.env` file.
+*   Update `GROQ_API_KEY` in `.env`.
+*   Update `MAIL_USERNAME` and `MAIL_PASSWORD` for email features.
 
-### 3. Start Infrastructure
-Spin up the required services (Postgres, Qdrant, Redis, MinIO) using Docker Compose:
+**Frontend:**
 ```bash
-docker-compose up -d
+cd frontend
+cp .env.example .env
+cd ..
 ```
 
-### 4. Install Dependencies
-It is recommended to use a virtual environment:
+### 3. Start the Backend (Docker Compose)
+The entire backend stack (Postgres, Qdrant, Redis, MinIO, Celery, and the FastAPI app) starts with one command:
 ```bash
-python -m venv venv
-source venv/bin/activate 
-pip install -r requirements.txt
+docker-compose up -d --build
 ```
+*Note: The first run will take time as it downloads embedding models and builds containers.*
 
-### 5. Database Migrations
-Initialize the database schema:
+### 4. Start the Frontend
+In a new terminal:
 ```bash
-alembic upgrade head
+cd frontend
+npm install
+npm run dev
 ```
+The application will be available at `http://localhost:5173`.
 
-### 6. Run the Application
-Start the FastAPI server:
+## 🧪 Testing the Pipeline
+You can test the RAG pipeline using the interactive manual test script:
 ```bash
-uvicorn main:app --reload
-```
-
-### 7. Run the Background Worker
-In a separate terminal, start the Celery worker to handle document processing:
-```bash
-celery -A app.core.celery_app worker --loglevel=info
+# Run inside the backend container
+docker exec -it rag_backend python tests/manual_test_relevance.py
 ```
 
 ## � Detailed Documentation
@@ -151,9 +152,6 @@ This project is designed to be educational. I have written detailed guides expla
 
 **Current Status:**
 This project is a robust proof-of-concept designed for educational clarity. While the core functionality is implemented and fully operational, software is rarely "finished." I am actively refining the codebase, optimizing performance, and expanding test coverage.
-
-**Frontend:**
-The backend is the heart of this repository. A modern React-based frontend is currently under active development and will be integrated soon to provide a complete user experience.
 
 **Contributions:**
 I welcome contributions! Whether it's fixing a bug, improving the documentation, or suggesting a new feature, feel free to open an issue or submit a pull request. Let's learn and build together.
