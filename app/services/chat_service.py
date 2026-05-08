@@ -3,6 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 from qdrant_client import models
 from sqlalchemy import desc
+from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Tuple
 from app.db.models.user import User
 from app.db.models.assistant import Assistant, Chat, Message
@@ -82,6 +83,7 @@ def handle_user_query(db: Session, query_in: UserQuery, chat_id: uuid.UUID, user
             temp=0.3,
             top_p=1.0
         )
+        reference_docs = doc_names
     elif classification.query_type == "summary":
         context, reference_docs = _build_summary_context(
             db, classification, assistant
@@ -312,7 +314,7 @@ def perform_rag_pipeline(db, query, assistant, user) -> Tuple[str, List[str]]:
             temp=0.3,
             top_p=1.0
         )
-        return response_text, []
+        return response_text, doc_names
 
     elif classification.query_type == "summary":
         context, reference_docs = _build_summary_context(
