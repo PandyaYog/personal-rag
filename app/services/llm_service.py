@@ -6,7 +6,7 @@ class GroqClient:
     def __init__(self):
         self.client = Groq(api_key=settings.GROQ_API_KEY)
 
-    def generate_response(self, model: str, system_prompt: str, user_query: str, context: str, temp: float, top_p: float) -> str:
+    def generate_response(self, model: str, system_prompt: str, user_query: str, context: str, temp: float, top_p: float, response_format: dict = None) -> str:
         """
         Generates a response from the Groq API using a formatted prompt.
         
@@ -17,6 +17,7 @@ class GroqClient:
             context: Additional context for the query
             temp: Temperature for response generation
             top_p: Top-p sampling parameter
+            response_format: Optional dict to enforce output format, e.g., {"type": "json_object"}
             
         Returns:
             Generated response string or error message
@@ -28,8 +29,8 @@ class GroqClient:
         )
         
         try:
-            chat_completion = self.client.chat.completions.create(
-                messages=[
+            kwargs = {
+                "messages": [
                     {
                         "role": "system",
                         "content": system_prompt,
@@ -39,10 +40,14 @@ class GroqClient:
                         "content": formatted_prompt,
                     },
                 ],
-                model=model,
-                temperature=temp,
-                top_p=top_p,
-            )
+                "model": model,
+                "temperature": temp,
+                "top_p": top_p,
+            }
+            if response_format:
+                kwargs["response_format"] = response_format
+                
+            chat_completion = self.client.chat.completions.create(**kwargs)
             return chat_completion.choices[0].message.content
         except Exception as e:
             print(f"Error calling Groq API: {e}")

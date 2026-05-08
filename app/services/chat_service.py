@@ -52,95 +52,7 @@ def handle_user_query(db: Session, query_in: UserQuery, chat_id: uuid.UUID, user
     # 3. Classify the query
     classification = classify_query(db, query=query_in.query, assistant_id=assistant.id)
     logger.info(f"Query classified as: {classification.query_type}")
-    response_text = ""
-    reference_docs = []
-
-    # 4. Execute logic based on classification
-    if classification.query_type == "general":
-        general_prompt = "You are a helpful AI assistant connected to a user's personal knowledge base. Respond to the following general query naturally and politely."
-        response_text = llm_client.generate_response(
-            model=assistant.llm_config['model'],
-            system_prompt=general_prompt,
-            user_query=query_in.query,
-            context="No context needed.",
-            temp=0.7,
-            top_p=1.0
-        )
-        
-    elif classification.query_type == "count":
-        from app.services import kb_service
-        docs = kb_service.get_all_docs_for_assistant(db, assistant_id=assistant.id)
-        doc_count = len(docs) if docs else 0
-        doc_names = [doc.name for doc in docs] if docs else []
-        context = f"The knowledge base currently contains {doc_count} documents. Sources: {', '.join(doc_names)}."
-        
-        count_prompt = "You are an AI assistant. Use the provided context to answer the user's question about the knowledge base statistics or data sources."
-        response_text = llm_client.generate_response(
-            model=assistant.llm_config['model'],
-            system_prompt=count_prompt,
-            user_query=query_in.query,
-            context=context,
-            temp=0.3,
-            top_p=1.0
-        )
-        reference_docs = doc_names
-    elif classification.query_type == "summary":
-        context, reference_docs = _build_summary_context(
-            db, classification, assistant
-        )
-        response_text = llm_client.generate_response(
-            model=assistant.llm_config['model'],
-            system_prompt=SUMMARY_SYSTEM_PROMPT,
-            user_query=query_in.query,
-            context=context,
-            temp=0.3,
-            top_p=1.0
-        )
-    
-    else: # 'specific_doc' or 'whole_kb'
-        # 5. Build retriever with assistant-specific config
-        try:
-            embedding_config_model = EmbeddingModelConfig(**assistant.embedding_config)
-        except Exception as e:
-            raise ValueError(f"Invalid embedding configuration for assistant {assistant.id}: {e}")
-        
-        retriever = get_retriever(embedding_config=embedding_config_model)
-        
-        # 6. Build search filters
-        kb_ids = [str(kb.id) for kb in assistant.knowledge_bases]
-        must_conditions = [
-            models.FieldCondition(key="user_id", match=models.MatchValue(value=str(user.id))),
-            models.FieldCondition(key="kb_id", match=models.MatchAny(any=kb_ids))
-        ]
-        if classification.query_type == "specific_doc" and classification.doc_ids:
-            must_conditions.append(
-                models.FieldCondition(key="doc_id", match=models.MatchAny(any=classification.doc_ids))
-            )
-        search_filter = models.Filter(must=must_conditions)
-        
-        # 7. Perform retrieval
-        search_results = retriever.search(
-            query=query_in.query,
-            filters=search_filter,
-            search_type=assistant.llm_config.get("search_type", "full_rrf")
-        )
-        
-        # 8. Format context for LLM
-        context = "\n\n---\n\n".join([hit.payload['chunk_content'] for hit in search_results])
-        unique_doc_names = list(set([hit.payload['doc_name'] for hit in search_results]))
-        reference_docs = unique_doc_names
-        if not context:
-            context = "No relevant information found in the knowledge base."
-        
-        # 9. Generate response with LLM
-        response_text = llm_client.generate_response(
-            model=assistant.llm_config['model'],
-            system_prompt=assistant.llm_config['system_prompt'],
-            user_query=query_in.query,
-            context=context,
-            temp=assistant.llm_config['temperature'],
-            top_p=assistant.llm_config['top_p']
-        )
+    response_text, reference_docs = perform_rag_pipeline(db, query_in.query, assistant, user)
     # 10. Save assistant's message
 
     assistant_message_content = {
@@ -347,17 +259,63 @@ def perform_rag_pipeline(db, query, assistant, user) -> Tuple[str, List[str]]:
     search_filter = models.Filter(must=must_conditions)
     search_results = retriever.search(query=query, filters=search_filter, search_type=assistant.llm_config.get("search_type", "full_rrf"))
     
-    context = "\n\n---\n\n".join([hit.payload['chunk_content'] for hit in search_results])
-    unique_doc_names = list(set([hit.payload['doc_name'] for hit in search_results]))
+    import json
     
-    if not context: context = "No relevant information found in the knowledge base."
+    if not search_results:
+        context = "No relevant information found in the knowledge base."
+        response_text = llm_client.generate_response(
+            model=assistant.llm_config['model'],
+            system_prompt=assistant.llm_config['system_prompt'],
+            user_query=query, context=context,
+            temp=assistant.llm_config['temperature'], top_p=assistant.llm_config['top_p']
+        )
+        return response_text, []
 
-    response_text = llm_client.generate_response(
-        model=assistant.llm_config['model'],
-        system_prompt=assistant.llm_config['system_prompt'],
-        user_query=query, context=context,
-        temp=assistant.llm_config['temperature'], top_p=assistant.llm_config['top_p']
+    # Get the actual names of the documents retrieved to validate LLM references later
+    actual_doc_names = list(set([hit.payload.get('doc_name', 'Unknown Document') for hit in search_results]))
+
+    context_parts = []
+    for hit in search_results:
+        doc_name = hit.payload.get('doc_name', 'Unknown Document')
+        chunk = hit.payload.get('chunk_content', '')
+        context_parts.append(f"Document Name: {doc_name}\nContent:\n{chunk}")
+        
+    context = "\n\n---\n\n".join(context_parts)
+
+    json_instruction = (
+        "\n\nYou must respond in strict JSON format with two keys: 'response' and 'references'. "
+        "The 'response' key should contain your answer to the user's query as a string. "
+        "The 'references' key should be a list of strings containing ONLY the exact 'Document Name's of the documents "
+        "that actually contained helpful information used to formulate your response. If no documents were helpful, return an empty list."
     )
+    
+    system_prompt = assistant.llm_config['system_prompt'] + json_instruction
+
+    try:
+        raw_response = llm_client.generate_response(
+            model=assistant.llm_config['model'],
+            system_prompt=system_prompt,
+            user_query=query, context=context,
+            temp=assistant.llm_config['temperature'], top_p=assistant.llm_config['top_p'],
+            response_format={"type": "json_object"}
+        )
+        parsed_response = json.loads(raw_response)
+        response_text = parsed_response.get('response', "Sorry, I couldn't generate a proper response.")
+        llm_references = parsed_response.get('references', [])
+        
+        # Ensure it's a list and validate against actual_doc_names
+        if isinstance(llm_references, list):
+            # Only keep references that actually exist in our retrieved context
+            unique_doc_names = [doc for doc in llm_references if doc in actual_doc_names]
+        else:
+            unique_doc_names = []
+            
+    except Exception as e:
+        logger.error(f"Failed to parse JSON response from LLM: {e}")
+        # Fallback if parsing fails
+        response_text = "Sorry, I encountered an error generating the response format."
+        unique_doc_names = []
+
     return response_text, unique_doc_names
 
 
