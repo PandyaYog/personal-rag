@@ -11,6 +11,17 @@ pinned: false
 
 **A transparent, educational implementation of Retrieval-Augmented Generation without the "magic" of heavy frameworks.**
 
+## 🌐 Live Demo
+
+**Frontend:** [https://personal-rag-system.vercel.app](https://personal-rag-self.vercel.app/)
+
+## 📺 Video Demonstrations
+
+| Landing Page | Document Upload | Chat Interface |
+| :---: | :---: | :---: |
+| ![Landing Page](vid/landing-page.mp4) | ![Doc Upload](vid/doc-upload.mp4) | ![Chat Interface](vid/chat-page.mp4) |
+
+
 ## 💡 The Philosophy: Why "From Scratch"?
 
 In the rapidly evolving world of AI, libraries like LangChain and LlamaIndex have become the go-to solutions for building RAG applications. While these frameworks are incredibly powerful, they often abstract away the critical mechanics of the system.
@@ -93,6 +104,19 @@ graph TD
     LLM -- Generate Answer --> API
     API -- Response --> User
 ```
+
+## 🏗️ Production Deployment Architecture
+
+The `hosting` branch uses a high-performance, decoupled cloud-native architecture:
+
+- **Frontend:** [Vercel](https://vercel.com/) (React + Vite)
+- **Database:** [Neon](https://neon.tech/) (Serverless PostgreSQL)
+- **Vector Store:** [Qdrant Cloud](https://qdrant.tech/) (Managed Vector DB)
+- **Cache & Task Broker:** [Upstash](https://upstash.com/) (Serverless Redis)
+- **Object Storage:** [Cloudflare R2](https://www.cloudflare.com/developer-platform/r2/) (S3-compatible)
+- **Embedding Service:** [Hugging Face Spaces](https://huggingface.co/spaces) (Isolated compute for heavy ML workloads)
+- **Process Management:** [Supervisord](http://supervisord.org/) (Orchestrating FastAPI & Celery in a single container)
+
 
 ## ⚙️ Setup & Installation
 
