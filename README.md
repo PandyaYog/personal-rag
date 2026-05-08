@@ -38,6 +38,17 @@ This is a full-stack RAG application designed to let you build your own knowledg
     *   **LLM:** [Groq](https://groq.com/) (Llama 3) - For ultra-fast inference speeds.
     *   **Embeddings:** `sentence-transformers` / `fastembed` - Efficient local embedding generation.
 
+## 🚢 Production Deployment
+
+The `hosting` branch contains the cloud-native production deployment version of this project, including:
+
+- Managed cloud infrastructure (Neon, Qdrant Cloud, Upstash, Cloudflare R2)
+- Hugging Face Spaces integration for embedding workloads
+- Production orchestration with supervisord
+- Deployment-ready architecture and hosting configuration
+
+If you are interested in the scalable deployment architecture, please check the `hosting` branch.
+
 ## 🧠 Architecture
 
 Here is the high-level data flow of the system:
