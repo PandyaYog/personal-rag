@@ -31,16 +31,9 @@ class Settings(BaseSettings):
     EMBEDDING_SERVICE_URL: str
     EMBEDDING_SERVICE_API_KEY: str
 
-    # --- Email Configuration (fastapi-mail) ---
-    MAIL_USERNAME: str = ""
-    MAIL_PASSWORD: str = ""
-    MAIL_FROM: str = ""
-    MAIL_PORT: int = 587
-    MAIL_SERVER: str = ""
-    MAIL_STARTTLS: bool = True
-    MAIL_SSL_TLS: bool = False
-    USE_CREDENTIALS: bool = True
-    VALIDATE_CERTS: bool = True
+    # --- Email Configuration (Brevo HTTP API) ---
+    BREVO_API_KEY: str = ""
+    BREVO_SENDER_EMAIL: str = ""
 
     class Config:
         env_file = ".env"

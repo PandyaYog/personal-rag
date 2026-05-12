@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
+import httpx
 
 from app.schemas import user as user_schema, token as token_schema
 from app.services import user_service
@@ -12,21 +12,43 @@ from app.core.config import settings
 router = APIRouter()
 
 # --- Email Configuration ---
-conf = ConnectionConfig(
-    MAIL_USERNAME=settings.MAIL_USERNAME,
-    MAIL_PASSWORD=settings.MAIL_PASSWORD,
-    MAIL_FROM=settings.MAIL_FROM,
-    MAIL_PORT=settings.MAIL_PORT,
-    MAIL_SERVER=settings.MAIL_SERVER,
-    MAIL_STARTTLS=settings.MAIL_STARTTLS,
-    MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
-    USE_CREDENTIALS=settings.USE_CREDENTIALS,
-    VALIDATE_CERTS=settings.VALIDATE_CERTS
-)
+async def _send_brevo_email(to_email: str, subject: str, html_content: str):
+    """
+    Helper function to send email via Brevo HTTP API.
+    """
+    if not settings.BREVO_API_KEY or not settings.BREVO_SENDER_EMAIL:
+        print("WARNING: Brevo credentials not configured. Email not sent.")
+        return
+
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "accept": "application/json",
+        "api-key": settings.BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+    payload = {
+        "sender": {
+            "name": "Personal RAG System",
+            "email": settings.BREVO_SENDER_EMAIL
+        },
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_content
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload, timeout=10.0)
+            response.raise_for_status()
+            print(f"Email sent successfully to {to_email}")
+    except httpx.HTTPStatusError as e:
+        print(f"Failed to send email to {to_email}. Brevo API returned {e.response.status_code}: {e.response.text}")
+    except Exception as e:
+        print(f"Failed to send email to {to_email}. Error: {e}")
 
 async def send_verification_email(email: str, token: str):
     """
-    Sends an email using fastapi-mail.
+    Sends a verification email using the Brevo API.
     """
     verification_link = f"{settings.FRONTEND_URL}/confirm-email?token={token}"
     
@@ -38,23 +60,11 @@ async def send_verification_email(email: str, token: str):
     <p>If you did not request this, please ignore this email.</p>
     """
 
-    message = MessageSchema(
-        subject="Please verify your email address",
-        recipients=[email],
-        body=html,
-        subtype=MessageType.html
-    )
-    
-    fm = FastMail(conf)
-    try:
-        await fm.send_message(message)
-        print(f"Verification email sent to {email}")
-    except Exception as e:
-        print(f"Failed to send email to {email}. Error: {e}")
+    await _send_brevo_email(email, "Please verify your email address", html)
 
 async def send_password_reset_email(email: str, token: str):
     """
-    Sends a password reset email using fastapi-mail.
+    Sends a password reset email using the Brevo API.
     """
     reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
     
@@ -67,19 +77,7 @@ async def send_password_reset_email(email: str, token: str):
     <p>If you did not request a password reset, please ignore this email.</p>
     """
 
-    message = MessageSchema(
-        subject="Password Reset Request",
-        recipients=[email],
-        body=html,
-        subtype=MessageType.html
-    )
-    
-    fm = FastMail(conf)
-    try:
-        await fm.send_message(message)
-        print(f"Password reset email sent to {email}")
-    except Exception as e:
-        print(f"Failed to send password reset email to {email}. Error: {e}")
+    await _send_brevo_email(email, "Password Reset Request", html)
 
 @router.post("/forgot-password")
 def forgot_password(
@@ -96,10 +94,10 @@ def forgot_password(
     if user:
         token = security.generate_password_reset_token(user.email)
         
-        if settings.MAIL_SERVER:
+        if settings.BREVO_API_KEY:
             background_tasks.add_task(send_password_reset_email, user.email, token)
         else:
-            print(f"WARNING: MAIL_SERVER not configured. Skipping password reset email to {user.email}. Token: {token}")
+            print(f"WARNING: BREVO_API_KEY not configured. Skipping password reset email to {user.email}. Token: {token}")
 
     return {"message": "If an account exists for that email, we have sent a password reset link."}
 
@@ -149,10 +147,10 @@ def signup(
     token = security.generate_email_verification_token(user.email)
     
     # We must be careful not to trigger exceptions if SMTP isn't configured properly during tests
-    if settings.MAIL_SERVER:
+    if settings.BREVO_API_KEY:
         background_tasks.add_task(send_verification_email, user.email, token)
     else:
-        print(f"WARNING: MAIL_SERVER not configured. Skipping email to {user.email}. Verification token: {token}")
+        print(f"WARNING: BREVO_API_KEY not configured. Skipping email to {user.email}. Verification token: {token}")
     
     return user
 
