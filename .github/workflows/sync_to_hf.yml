@@ -17,4 +17,10 @@ jobs:
       - name: Push to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push --force https://yogpandya:$HF_TOKEN@huggingface.co/spaces/yogpandya/personal-rag-backend HEAD:main
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git checkout --orphan hf-deploy
+          git rm -rf --cached vid/ || true
+          git commit -m "Deploying latest backend to Hugging Face"
+          git push --force https://yogpandya:$HF_TOKEN@huggingface.co/spaces/yogpandya/personal-rag-backend hf-deploy:main
